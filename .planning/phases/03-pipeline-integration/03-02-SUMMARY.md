@@ -119,3 +119,14 @@ None — no external service configuration required for this plan.
 ---
 *Phase: 03-pipeline-integration*
 *Completed: 2026-02-25*
+
+## Self-Check: PASSED
+
+- tests/test_pipeline.py: FOUND
+- 03-02-SUMMARY.md: FOUND
+- Commit 477fd72 (Task 1): FOUND
+- Commit cc63252 (Task 2): FOUND
+- Test count: 10 tests (above minimum 8)
+- Line count: 355 lines (above minimum 200)
+- test_full_pipeline_motion_event: FOUND
+- All 40 tests pass (10 pipeline + 30 prior)
