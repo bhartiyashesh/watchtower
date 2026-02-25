@@ -22,14 +22,14 @@
 ## Current Position
 
 **Phase:** 1 — Data Foundation
-**Plan:** None started
-**Status:** Not started
-**Last action:** Roadmap created
+**Plan:** 01-01 complete, 01-02 next
+**Status:** In progress
+**Last action:** Completed 01-01-PLAN.md (EventStore module)
 
 ```
-Progress: [----------] 0%
+Progress: [##--------] 10%
 
-Phase 1: Data Foundation     [ ] Not started
+Phase 1: Data Foundation     [>] In progress (1/2 plans done)
 Phase 2: Object Detection    [ ] Not started
 Phase 3: Pipeline Integration[ ] Not started
 Phase 4: Telegram Alerts     [ ] Not started
@@ -46,8 +46,8 @@ Phase 5: Web Dashboard       [ ] Not started
 | Phases complete | 0 |
 | Requirements total (v1) | 27 |
 | Requirements complete | 0 |
-| Plans created | 0 |
-| Plans complete | 0 |
+| Plans created | 1 |
+| Plans complete | 1 |
 
 ---
 
@@ -66,6 +66,9 @@ Phase 5: Web Dashboard       [ ] Not started
 | Telegram Bot class direct use (not Application.run_polling()) | Application creates its own loop, conflicts with FastAPI/uvicorn loop | Phase 4 |
 | AIORateLimiter + 60-second coalescing | Prevents Telegram flood ban from burst Ring events | Phase 4 |
 | FileResponse for thumbnails (not StaticFiles) | Allows per-request Basic Auth enforcement; StaticFiles bypasses middleware auth | Phase 5 |
+| WAL PRAGMAs applied before DDL statements | Required for WAL mode to activate correctly on first-time database creation | Phase 1 |
+| save_thumbnail() is synchronous (not async) | Pillow image I/O is CPU-bound; called before async DB write to avoid event loop blocking | Phase 1 |
+| Thumbnail failures isolated from event storage | try/except returns None on error — thumbnail failure must never prevent event record creation | Phase 1 |
 
 ### Known Risks (from research)
 
@@ -106,7 +109,7 @@ None currently.
 1. Read this file for current position and context
 2. Read `.planning/ROADMAP.md` for phase goals and success criteria
 3. Read `.planning/REQUIREMENTS.md` for requirement details
-4. Run `/gsd:plan-phase 1` to begin Phase 1 planning
+4. Run `/gsd:execute-phase 1` to execute Phase 1, Plan 02 (test suite)
 
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
@@ -117,4 +120,4 @@ None currently.
 
 ---
 *State initialized: 2026-02-25*
-*Last updated: 2026-02-25 — roadmap created*
+*Last updated: 2026-02-25 — completed 01-01-PLAN.md (EventStore module, 2 tasks, 1m 47s)*

@@ -9,12 +9,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Data Storage
 
-- [ ] **DATA-01**: System persists every motion event to SQLite with timestamp, camera ID, event type, and recording ID
-- [ ] **DATA-02**: System stores YOLO detection results (object class, confidence, bounding box) linked to each event
-- [ ] **DATA-03**: System saves event thumbnail as JPEG file on disk with path stored in event record
-- [ ] **DATA-04**: System logs every unlock/lock action with timestamp, person name, confidence, and success status
-- [ ] **DATA-05**: SQLite database uses WAL mode for concurrent read/write access without locking
-- [ ] **DATA-06**: System stores face recognition results (matched person, distance, confidence) per event
+- [x] **DATA-01**: System persists every motion event to SQLite with timestamp, camera ID, event type, and recording ID
+- [x] **DATA-02**: System stores YOLO detection results (object class, confidence, bounding box) linked to each event
+- [x] **DATA-03**: System saves event thumbnail as JPEG file on disk with path stored in event record
+- [x] **DATA-04**: System logs every unlock/lock action with timestamp, person name, confidence, and success status
+- [x] **DATA-05**: SQLite database uses WAL mode for concurrent read/write access without locking
+- [x] **DATA-06**: System stores face recognition results (matched person, distance, confidence) per event
 
 ### Object Detection
 
@@ -95,12 +95,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 1 | Pending |
-| DATA-02 | Phase 1 | Pending |
-| DATA-03 | Phase 1 | Pending |
-| DATA-04 | Phase 1 | Pending |
-| DATA-05 | Phase 1 | Pending |
-| DATA-06 | Phase 1 | Pending |
+| DATA-01 | Phase 1 | Complete (01-01) |
+| DATA-02 | Phase 1 | Complete (01-01) |
+| DATA-03 | Phase 1 | Complete (01-01) |
+| DATA-04 | Phase 1 | Complete (01-01) |
+| DATA-05 | Phase 1 | Complete (01-01) |
+| DATA-06 | Phase 1 | Complete (01-01) |
 | YOLO-01 | Phase 2 | Pending |
 | YOLO-02 | Phase 2 | Pending |
 | YOLO-03 | Phase 2 | Pending |
@@ -130,4 +130,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-24*
-*Last updated: 2026-02-25 — traceability confirmed after roadmap creation*
+*Last updated: 2026-02-25 — DATA-01 through DATA-06 complete after 01-01-PLAN.md*

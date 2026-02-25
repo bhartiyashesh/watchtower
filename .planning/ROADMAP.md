@@ -30,7 +30,7 @@
   5. Concurrent read and write operations against the database complete without "database is locked" errors (WAL mode confirmed active)
 **Plans:** 2 plans
 Plans:
-- [ ] 01-01-PLAN.md — EventStore module with full schema, WAL mode, and CRUD methods
+- [x] 01-01-PLAN.md — EventStore module with full schema, WAL mode, and CRUD methods
 - [ ] 01-02-PLAN.md — Comprehensive test suite validating all DATA requirements and concurrent access
 
 ### Phase 2: Object Detection
@@ -84,7 +84,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation | 0/2 | Planned | - |
+| 1. Data Foundation | 1/2 | In progress | - |
 | 2. Object Detection | 0/? | Not started | - |
 | 3. Pipeline Integration | 0/? | Not started | - |
 | 4. Telegram Alerts | 0/? | Not started | - |
