@@ -85,7 +85,11 @@ Plans:
   3. Dashboard summary widget shows today's total event count, the most recent event card, and the current lock status
   4. Accessing the dashboard or any thumbnail URL without valid HTTP Basic Auth credentials returns a 401 response — no event data or thumbnails are visible unauthenticated
   5. Loading the event feed with 1,000+ events in the database completes without timeout — server-side pagination confirmed by verifying only one page of results is fetched per request
-**Plans**: TBD
+**Plans:** 3 plans
+Plans:
+- [ ] 05-01-PLAN.md — EventStore query methods, dashboard config fields, and app.py switchbot wiring
+- [ ] 05-02-PLAN.md — Dashboard router with auth, Jinja2 templates, event feed, summary widget, thumbnail serving
+- [ ] 05-03-PLAN.md — Comprehensive test suite validating all DASH requirements
 
 ---
 
@@ -97,7 +101,7 @@ Plans:
 | 2. Object Detection | 2/2 | Complete | 2026-02-25 |
 | 3. Pipeline Integration | 2/2 | Complete | 2026-02-25 |
 | 4. Telegram Alerts | 2/2 | Complete | 2026-02-25 |
-| 5. Web Dashboard | 0/? | Not started | - |
+| 5. Web Dashboard | 0/3 | Planning complete | - |
 
 ---
 
