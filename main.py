@@ -28,14 +28,14 @@ logging.basicConfig(
 logger = logging.getLogger("smart-lock.pipeline")
 
 
-async def polling_loop(ring, recognizer, switchbot, detector: ObjectDetector, store: EventStore):
+async def polling_loop(ring, recognizer, switchbot, detector: ObjectDetector, store: EventStore, alerter=None):
     """
     Full motion event pipeline loop.
 
     Polls Ring for new events at Config.POLL_INTERVAL intervals, then for each
     new event runs YOLO detection, face recognition on any person crop, persists
-    the event to EventStore, and dispatches SwitchBot unlock if a known face
-    was matched.
+    the event to EventStore, dispatches SwitchBot unlock if a known face was
+    matched, and sends Telegram alerts for stranger-detected or unlock events.
 
     All blocking calls (recognizer.identify, switchbot.unlock) are dispatched
     via run_in_executor to avoid blocking the asyncio event loop.
@@ -46,6 +46,7 @@ async def polling_loop(ring, recognizer, switchbot, detector: ObjectDetector, st
         switchbot: SwitchBotClient instance.
         detector: ObjectDetector instance (YOLO async wrapper).
         store: Initialized EventStore instance.
+        alerter: Optional TelegramAlerter instance. If None, alerts are skipped.
 
     Raises:
         asyncio.CancelledError: Propagated on graceful shutdown (re-raised after logging).
@@ -181,6 +182,22 @@ async def polling_loop(ring, recognizer, switchbot, detector: ObjectDetector, st
                 detections=detection_dicts,
             )
             logger.info(f"Event persisted: event_id={event_id}")
+
+            # --- Send Telegram alert ---
+            if alerter is not None:
+                if matched_name is None and any(d["label"] == "person" for d in detection_dicts):
+                    caption = (
+                        f"Unknown person detected at the door\n"
+                        f"Objects: {', '.join(d['label'] for d in detection_dicts)}\n"
+                        f"Time: {recorded_at}"
+                    )
+                    await alerter.alert_stranger(thumbnail_path, caption)
+                elif matched_name is not None and unlock_granted:
+                    caption = (
+                        f"Welcome home, {matched_name}!\n"
+                        f"Door unlocked at {recorded_at}"
+                    )
+                    await alerter.alert_unlock(thumbnail_path, caption)
 
         except asyncio.CancelledError:
             # CRITICAL: must be caught and re-raised BEFORE except Exception

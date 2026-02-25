@@ -24,6 +24,7 @@ from face_recognizer import FaceRecognizer
 from switchbot_client import SwitchBotClient
 from object_detector import ObjectDetector
 from event_store import EventStore
+from telegram_alerter import TelegramAlerter
 from main import polling_loop
 
 logging.basicConfig(
@@ -81,17 +82,33 @@ async def lifespan(app: FastAPI):
     ring = RingClient(Config.RING_USERNAME, Config.RING_PASSWORD)
     await ring.authenticate()
 
+    # --- Initialize Telegram alerter (optional — graceful if token missing) ---
+    alerter = None
+    if Config.TELEGRAM_BOT_TOKEN and Config.TELEGRAM_CHAT_ID:
+        logger.info("Initializing Telegram alerter...")
+        alerter = TelegramAlerter(
+            token=Config.TELEGRAM_BOT_TOKEN,
+            chat_id=Config.TELEGRAM_CHAT_ID,
+        )
+        await alerter.initialize()
+    else:
+        logger.warning(
+            "TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set — "
+            "Telegram alerts disabled"
+        )
+
     # --- Start polling loop as asyncio.Task ---
     logger.info(
         f"Starting polling loop (interval={Config.POLL_INTERVAL}s, "
         f"camera_id={Config.CAMERA_ID})..."
     )
     polling_task = asyncio.create_task(
-        polling_loop(ring, recognizer, switchbot, detector, store)
+        polling_loop(ring, recognizer, switchbot, detector, store, alerter)
     )
 
-    # Expose store on app.state for Phase 5 dashboard routes
+    # Expose store and alerter on app.state for Phase 5 dashboard routes
     app.state.store = store
+    app.state.alerter = alerter
 
     yield
 
@@ -103,6 +120,9 @@ async def lifespan(app: FastAPI):
         await polling_task
     except asyncio.CancelledError:
         pass
+
+    if alerter is not None:
+        await alerter.shutdown()
 
     detector.shutdown()
     await store.close()
