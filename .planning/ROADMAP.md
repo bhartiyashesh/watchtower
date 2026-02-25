@@ -56,7 +56,10 @@ Plans:
   2. The existing unlock behavior (face match triggers SwitchBot unlock with cooldown) continues to function after pipeline integration with no regressions
   3. FastAPI starts cleanly with the Ring polling loop running as a background asyncio Task inside the lifespan context — no "loop already running" or "nest_asyncio" errors in startup logs
   4. The event record includes a camera_id field populated for every event, making the schema ready for a second camera without a schema migration
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 03-01-PLAN.md — FastAPI app with lifespan, full polling loop pipeline (Ring -> YOLO -> face recognition -> EventStore -> SwitchBot)
+- [ ] 03-02-PLAN.md — Comprehensive test suite validating all PIPE requirements with mocked external services
 
 ### Phase 4: Telegram Alerts
 **Goal**: Homeowner receives real-time photo alerts for strangers and unlock confirmations on Telegram
@@ -89,7 +92,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 2/2 | Complete | 2026-02-25 |
 | 2. Object Detection | 2/2 | Complete | 2026-02-25 |
-| 3. Pipeline Integration | 0/? | Not started | - |
+| 3. Pipeline Integration | 0/2 | In Progress | - |
 | 4. Telegram Alerts | 0/? | Not started | - |
 | 5. Web Dashboard | 0/? | Not started | - |
 
