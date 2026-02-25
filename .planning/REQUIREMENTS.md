@@ -44,10 +44,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Pipeline Integration
 
-- [ ] **PIPE-01**: FastAPI owns the asyncio event loop with Ring polling running as a background task via lifespan context
-- [ ] **PIPE-02**: Every motion event flows through: Ring capture → YOLO detection → face recognition → event store write → alert send
-- [ ] **PIPE-03**: Existing unlock behavior (face match → SwitchBot unlock → cooldown) is preserved unchanged
-- [ ] **PIPE-04**: System architecture supports adding multiple cameras via camera_id field (multi-camera ready)
+- [x] **PIPE-01**: FastAPI owns the asyncio event loop with Ring polling running as a background task via lifespan context
+- [x] **PIPE-02**: Every motion event flows through: Ring capture → YOLO detection → face recognition → event store write → alert send
+- [x] **PIPE-03**: Existing unlock behavior (face match → SwitchBot unlock → cooldown) is preserved unchanged
+- [x] **PIPE-04**: System architecture supports adding multiple cameras via camera_id field (multi-camera ready)
 
 ## v2 Requirements
 
@@ -106,10 +106,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | YOLO-03 | Phase 2 | Complete (02-01, 02-02) |
 | YOLO-04 | Phase 2 | Complete (02-01, 02-02) |
 | YOLO-05 | Phase 2 | Complete (02-01, 02-02) |
-| PIPE-01 | Phase 3 | Pending |
-| PIPE-02 | Phase 3 | Pending |
-| PIPE-03 | Phase 3 | Pending |
-| PIPE-04 | Phase 3 | Pending |
+| PIPE-01 | Phase 3 | Complete (03-01) |
+| PIPE-02 | Phase 3 | Complete (03-01) |
+| PIPE-03 | Phase 3 | Complete (03-01) |
+| PIPE-04 | Phase 3 | Complete (03-01) |
 | TELE-01 | Phase 4 | Pending |
 | TELE-02 | Phase 4 | Pending |
 | TELE-03 | Phase 4 | Pending |
@@ -132,3 +132,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 *Requirements defined: 2026-02-24*
 *Last updated: 2026-02-25 — DATA-01 through DATA-06 complete after 01-01-PLAN.md*
 *Last updated: 2026-02-25 — YOLO-01 through YOLO-05 implementation complete (02-01) and validated by 16-test suite (02-02). Phase 2 complete.*
+*Last updated: 2026-02-25 — PIPE-01 through PIPE-04 complete after 03-01-PLAN.md (FastAPI lifespan + full pipeline).*

@@ -58,7 +58,7 @@ Plans:
   4. The event record includes a camera_id field populated for every event, making the schema ready for a second camera without a schema migration
 **Plans:** 2 plans
 Plans:
-- [ ] 03-01-PLAN.md — FastAPI app with lifespan, full polling loop pipeline (Ring -> YOLO -> face recognition -> EventStore -> SwitchBot)
+- [x] 03-01-PLAN.md — FastAPI app with lifespan, full polling loop pipeline (Ring -> YOLO -> face recognition -> EventStore -> SwitchBot)
 - [ ] 03-02-PLAN.md — Comprehensive test suite validating all PIPE requirements with mocked external services
 
 ### Phase 4: Telegram Alerts
@@ -92,7 +92,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 2/2 | Complete | 2026-02-25 |
 | 2. Object Detection | 2/2 | Complete | 2026-02-25 |
-| 3. Pipeline Integration | 0/2 | In Progress | - |
+| 3. Pipeline Integration | 1/2 | In Progress | - |
 | 4. Telegram Alerts | 0/? | Not started | - |
 | 5. Web Dashboard | 0/? | Not started | - |
 
