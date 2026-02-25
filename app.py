@@ -106,9 +106,10 @@ async def lifespan(app: FastAPI):
         polling_loop(ring, recognizer, switchbot, detector, store, alerter)
     )
 
-    # Expose store and alerter on app.state for Phase 5 dashboard routes
+    # Expose store, alerter, and switchbot on app.state for Phase 5 dashboard routes
     app.state.store = store
     app.state.alerter = alerter
+    app.state.switchbot = switchbot
 
     yield
 

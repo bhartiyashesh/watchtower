@@ -39,6 +39,10 @@ class Config:
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
 
+    # Web Dashboard (Phase 5)
+    DASHBOARD_USERNAME: str = os.getenv("DASHBOARD_USERNAME", "admin")
+    DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "")
+
     @classmethod
     def validate(cls) -> list[str]:
         errors = []
@@ -54,4 +58,6 @@ class Config:
             errors.append("SWITCHBOT_DEVICE_ID is required")
         if not cls.KNOWN_FACES_DIR.exists():
             errors.append(f"Known faces directory not found: {cls.KNOWN_FACES_DIR}")
+        if not cls.DASHBOARD_PASSWORD:
+            errors.append("DASHBOARD_PASSWORD is required")
         return errors
