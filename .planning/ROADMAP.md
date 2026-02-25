@@ -8,7 +8,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: Data Foundation** - SQLite schema and EventStore module that every other feature depends on
+- [x] **Phase 1: Data Foundation** - SQLite schema and EventStore module that every other feature depends on
 - [ ] **Phase 2: Object Detection** - YOLO11n object detector wrapped behind async interface, benchmarked on target hardware
 - [ ] **Phase 3: Pipeline Integration** - Full motion event pipeline wired end-to-end with persistent event records
 - [ ] **Phase 4: Telegram Alerts** - Real-time stranger and unlock alerts with flood control
@@ -31,7 +31,7 @@
 **Plans:** 2 plans
 Plans:
 - [x] 01-01-PLAN.md — EventStore module with full schema, WAL mode, and CRUD methods
-- [ ] 01-02-PLAN.md — Comprehensive test suite validating all DATA requirements and concurrent access
+- [x] 01-02-PLAN.md — Comprehensive test suite validating all DATA requirements and concurrent access
 
 ### Phase 2: Object Detection
 **Goal**: YOLO11n detects objects in doorbell frames without blocking the asyncio event loop
@@ -84,7 +84,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation | 1/2 | In progress | - |
+| 1. Data Foundation | 2/2 | Complete | 2026-02-25 |
 | 2. Object Detection | 0/? | Not started | - |
 | 3. Pipeline Integration | 0/? | Not started | - |
 | 4. Telegram Alerts | 0/? | Not started | - |

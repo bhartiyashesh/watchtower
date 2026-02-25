@@ -8,7 +8,7 @@
 
 **Core Value:** Automatically unlock the door for recognized household members while building a comprehensive activity log of everything happening at your doorstep — accessible through a searchable web dashboard with real-time Telegram alerts.
 
-**Current Focus:** Phase 1 — Data Foundation (SQLite schema + EventStore)
+**Current Focus:** Phase 2 — Object Detection (YOLO11n async interface)
 
 **Stack:**
 - Python 3.12 (pinned — dlib incompatible with 3.13)
@@ -21,16 +21,16 @@
 
 ## Current Position
 
-**Phase:** 1 — Data Foundation
-**Plan:** 01-01 complete, 01-02 next
-**Status:** In progress
-**Last action:** Completed 01-01-PLAN.md (EventStore module)
+**Phase:** 1 — Data Foundation (COMPLETE), starting Phase 2 — Object Detection
+**Plan:** 01-02 complete — Phase 1 finished
+**Status:** Phase 1 complete, Phase 2 ready to start
+**Last action:** Completed 01-02-PLAN.md (EventStore test suite, 14 tests pass)
 
 ```
-Progress: [##--------] 10%
+Progress: [####------] 20%
 
-Phase 1: Data Foundation     [>] In progress (1/2 plans done)
-Phase 2: Object Detection    [ ] Not started
+Phase 1: Data Foundation     [x] Complete (2/2 plans done)
+Phase 2: Object Detection    [>] Ready to start
 Phase 3: Pipeline Integration[ ] Not started
 Phase 4: Telegram Alerts     [ ] Not started
 Phase 5: Web Dashboard       [ ] Not started
@@ -46,8 +46,8 @@ Phase 5: Web Dashboard       [ ] Not started
 | Phases complete | 0 |
 | Requirements total (v1) | 27 |
 | Requirements complete | 0 |
-| Plans created | 1 |
-| Plans complete | 1 |
+| Plans created | 2 |
+| Plans complete | 2 |
 
 ---
 
@@ -69,6 +69,8 @@ Phase 5: Web Dashboard       [ ] Not started
 | WAL PRAGMAs applied before DDL statements | Required for WAL mode to activate correctly on first-time database creation | Phase 1 |
 | save_thumbnail() is synchronous (not async) | Pillow image I/O is CPU-bound; called before async DB write to avoid event loop blocking | Phase 1 |
 | Thumbnail failures isolated from event storage | try/except returns None on error — thumbnail failure must never prevent event record creation | Phase 1 |
+| pytest-asyncio strict mode | All async tests require explicit @pytest.mark.asyncio decorator; prevents accidental silent skips | Phase 1 |
+| Each test gets isolated temp directory | Prevents test interference; tests can run in any order | Phase 1 |
 
 ### Known Risks (from research)
 
@@ -109,7 +111,7 @@ None currently.
 1. Read this file for current position and context
 2. Read `.planning/ROADMAP.md` for phase goals and success criteria
 3. Read `.planning/REQUIREMENTS.md` for requirement details
-4. Run `/gsd:execute-phase 1` to execute Phase 1, Plan 02 (test suite)
+4. Run `/gsd:execute-phase 2` to start Phase 2 (Object Detection — YOLO11n)
 
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
@@ -120,4 +122,4 @@ None currently.
 
 ---
 *State initialized: 2026-02-25*
-*Last updated: 2026-02-25 — completed 01-01-PLAN.md (EventStore module, 2 tasks, 1m 47s)*
+*Last updated: 2026-02-25 — completed 01-02-PLAN.md (EventStore test suite, 2 tasks, 14 tests pass, 1m 49s). Phase 1 complete.*
