@@ -44,7 +44,7 @@ Plans:
   4. Face recognition runs on the YOLO-cropped person bounding box, not the full frame — confirmed by checking that face matching input dimensions match the YOLO crop dimensions
 **Plans:** 2 plans
 Plans:
-- [ ] 02-01-PLAN.md — ObjectDetector module with YOLO11n wrapper, async detect, person crop, config update
+- [x] 02-01-PLAN.md — ObjectDetector module with YOLO11n wrapper, async detect, person crop, config update
 - [ ] 02-02-PLAN.md — Comprehensive test suite validating all YOLO requirements and non-blocking behavior
 
 ### Phase 3: Pipeline Integration
@@ -88,7 +88,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 2/2 | Complete | 2026-02-25 |
-| 2. Object Detection | 0/2 | In progress | - |
+| 2. Object Detection | 1/2 | In progress | - |
 | 3. Pipeline Integration | 0/? | Not started | - |
 | 4. Telegram Alerts | 0/? | Not started | - |
 | 5. Web Dashboard | 0/? | Not started | - |
