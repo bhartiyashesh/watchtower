@@ -27,6 +27,9 @@ class Config:
     DB_PATH: str = os.getenv("DB_PATH", "./events.db")
     THUMBNAILS_DIR: str = os.getenv("THUMBNAILS_DIR", "./thumbnails")
 
+    # YOLO Object Detection
+    YOLO_MODEL_PATH: str = os.getenv("YOLO_MODEL_PATH", "yolo11n.pt")
+
     @classmethod
     def validate(cls) -> list[str]:
         errors = []
