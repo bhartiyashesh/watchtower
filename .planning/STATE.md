@@ -8,7 +8,7 @@
 
 **Core Value:** Automatically unlock the door for recognized household members while building a comprehensive activity log of everything happening at your doorstep — accessible through a searchable web dashboard with real-time Telegram alerts.
 
-**Current Focus:** Phase 4 — Telegram Alerts
+**Current Focus:** Phase 5 — Web Dashboard
 
 **Stack:**
 - Python 3.12 (pinned — dlib incompatible with 3.13)
@@ -21,19 +21,19 @@
 
 ## Current Position
 
-**Phase:** 4 — Telegram Alerts (Complete)
-**Plan:** 04-02 complete — TelegramAlerter test suite (1 task, 2 minutes)
-**Status:** Milestone complete
-**Last action:** Completed 04-02-PLAN.md (12 tests for TelegramAlerter, all TELE requirements covered, 1 task, 2 min)
+**Phase:** 5 — Web Dashboard (In Progress)
+**Plan:** 05-01 complete — Backend prerequisites (EventStore query methods, dashboard config, app.state.switchbot)
+**Status:** In progress (1/3 plans complete in phase 5)
+**Last action:** Completed 05-01-PLAN.md (EventStore get_filtered_events + get_today_event_count, Config dashboard fields, app.state.switchbot, 2 tasks, 5 min)
 
 ```
-Progress: [####################] 80%
+Progress: [######################] 84%
 
 Phase 1: Data Foundation     [x] Complete (2/2 plans done)
 Phase 2: Object Detection    [x] Complete (2/2 plans done)
 Phase 3: Pipeline Integration[x] Complete (2/2 plans done)
 Phase 4: Telegram Alerts     [x] Complete (2/2 plans done)
-Phase 5: Web Dashboard       [ ] Not started
+Phase 5: Web Dashboard       [.] In Progress (1/3 plans done)
 ```
 
 ---
@@ -46,8 +46,8 @@ Phase 5: Web Dashboard       [ ] Not started
 | Phases complete | 4 |
 | Requirements total (v1) | 27 |
 | Requirements complete | 4 |
-| Plans created | 8 |
-| Plans complete | 8 |
+| Plans created | 11 |
+| Plans complete | 9 |
 
 ---
 
@@ -66,6 +66,9 @@ Phase 5: Web Dashboard       [ ] Not started
 | Telegram Bot class direct use (not Application.run_polling()) | Application creates its own loop, conflicts with FastAPI/uvicorn loop | Phase 4 |
 | AIORateLimiter + 60-second coalescing | Prevents Telegram flood ban from burst Ring events | Phase 4 |
 | FileResponse for thumbnails (not StaticFiles) | Allows per-request Basic Auth enforcement; StaticFiles bypasses middleware auth | Phase 5 |
+| get_filtered_events WHERE clause from literal SQL fragments only; object_type always parameterized | Safe f-string SQL pattern — user values never interpolated; documented in docstring to prevent future regressions | Phase 5 |
+| DASHBOARD_PASSWORD defaults to empty string; validate() rejects it | Prevents silent auth bypass on misconfigured deployments before server starts | Phase 5 |
+| app.state.switchbot exposed in lifespan alongside store and alerter | Dashboard summary route can call get_lock_status() via run_in_executor without global singleton | Phase 5 |
 | python-telegram-bot 22.5 used (22.6 unavailable) | Version 22.6 does not exist on PyPI; 22.5 is functionally identical for all APIs used | Phase 4 |
 | asyncio.Lock released before HTTP I/O in TelegramAlerter | Prevents lock contention during slow Telegram sends; only guard timestamp check/update | Phase 4 |
 | Per-type coalescing timestamps (stranger vs unlock separate) | Ensures alert types never suppress each other; independent 60s windows per alert category | Phase 4 |
@@ -124,9 +127,9 @@ None currently.
 1. Read this file for current position and context
 2. Read `.planning/ROADMAP.md` for phase goals and success criteria
 3. Read `.planning/REQUIREMENTS.md` for requirement details
-4. Run `/gsd:execute-phase 5` to start Phase 5 (Web Dashboard)
+4. Run `/gsd:execute-phase 5` to continue Phase 5 (Web Dashboard) — next plan is 05-02
 
-**Stopped at:** Completed 04-02-PLAN.md
+**Stopped at:** Completed 05-01-PLAN.md
 
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
@@ -144,3 +147,4 @@ None currently.
 *Last updated: 2026-02-25 — completed 03-02-PLAN.md (pipeline integration test suite, 2 tasks, 10 tests, 40 total, 4m). Phase 3 complete.*
 *Last updated: 2026-02-25 — completed 04-01-PLAN.md (TelegramAlerter module + pipeline integration, 2 tasks, 5 files, 3m). Phase 4 plan 1 of 2 complete.*
 *Last updated: 2026-02-25 — completed 04-02-PLAN.md (TelegramAlerter test suite, 1 task, 12 tests, 52 total, 2m). Phase 4 complete.*
+*Last updated: 2026-02-25 — completed 05-01-PLAN.md (EventStore query methods, dashboard config fields, app.state.switchbot, 2 tasks, 5m). Phase 5 plan 1/3 complete.*

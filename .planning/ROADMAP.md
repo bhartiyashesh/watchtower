@@ -12,7 +12,7 @@
 - [x] **Phase 2: Object Detection** - YOLO11n object detector wrapped behind async interface, benchmarked on target hardware
 - [x] **Phase 3: Pipeline Integration** - Full motion event pipeline wired end-to-end with persistent event records
 - [x] **Phase 4: Telegram Alerts** - Real-time stranger and unlock alerts with flood control (2/2 plans complete)
-- [ ] **Phase 5: Web Dashboard** - Authenticated FastAPI dashboard with event history, filters, and summary widget
+- [.] **Phase 5: Web Dashboard** - Authenticated FastAPI dashboard with event history, filters, and summary widget (1/3 plans complete)
 
 ---
 
@@ -87,7 +87,7 @@ Plans:
   5. Loading the event feed with 1,000+ events in the database completes without timeout — server-side pagination confirmed by verifying only one page of results is fetched per request
 **Plans:** 3 plans
 Plans:
-- [ ] 05-01-PLAN.md — EventStore query methods, dashboard config fields, and app.py switchbot wiring
+- [x] 05-01-PLAN.md — EventStore query methods, dashboard config fields, and app.py switchbot wiring
 - [ ] 05-02-PLAN.md — Dashboard router with auth, Jinja2 templates, event feed, summary widget, thumbnail serving
 - [ ] 05-03-PLAN.md — Comprehensive test suite validating all DASH requirements
 
@@ -101,7 +101,7 @@ Plans:
 | 2. Object Detection | 2/2 | Complete | 2026-02-25 |
 | 3. Pipeline Integration | 2/2 | Complete | 2026-02-25 |
 | 4. Telegram Alerts | 2/2 | Complete | 2026-02-25 |
-| 5. Web Dashboard | 0/3 | Planning complete | - |
+| 5. Web Dashboard | 1/3 | In Progress | - |
 
 ---
 
