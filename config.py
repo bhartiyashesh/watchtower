@@ -30,6 +30,11 @@ class Config:
     # YOLO Object Detection
     YOLO_MODEL_PATH: str = os.getenv("YOLO_MODEL_PATH", "yolo11n.pt")
 
+    # Pipeline (Phase 3)
+    CAMERA_ID: str = os.getenv("CAMERA_ID", "front_door")
+    FASTAPI_HOST: str = os.getenv("FASTAPI_HOST", "127.0.0.1")
+    FASTAPI_PORT: int = int(os.getenv("FASTAPI_PORT", "8000"))
+
     @classmethod
     def validate(cls) -> list[str]:
         errors = []
