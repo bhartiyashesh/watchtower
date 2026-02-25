@@ -11,7 +11,7 @@
 - [x] **Phase 1: Data Foundation** - SQLite schema and EventStore module that every other feature depends on
 - [x] **Phase 2: Object Detection** - YOLO11n object detector wrapped behind async interface, benchmarked on target hardware
 - [x] **Phase 3: Pipeline Integration** - Full motion event pipeline wired end-to-end with persistent event records
-- [x] **Phase 4: Telegram Alerts** - Real-time stranger and unlock alerts with flood control (04-01 complete)
+- [x] **Phase 4: Telegram Alerts** - Real-time stranger and unlock alerts with flood control (2/2 plans complete)
 - [ ] **Phase 5: Web Dashboard** - Authenticated FastAPI dashboard with event history, filters, and summary widget
 
 ---
@@ -73,7 +73,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 04-01-PLAN.md — TelegramAlerter module with ExtBot, AIORateLimiter, coalescing, and pipeline integration
-- [ ] 04-02-PLAN.md — Comprehensive test suite validating all TELE requirements with mocked Telegram API
+- [x] 04-02-PLAN.md — Comprehensive test suite validating all TELE requirements with mocked Telegram API
 
 ### Phase 5: Web Dashboard
 **Goal**: Homeowner can review all doorbell activity through a secure, filterable web interface
@@ -96,7 +96,7 @@ Plans:
 | 1. Data Foundation | 2/2 | Complete | 2026-02-25 |
 | 2. Object Detection | 2/2 | Complete | 2026-02-25 |
 | 3. Pipeline Integration | 2/2 | Complete | 2026-02-25 |
-| 4. Telegram Alerts | 1/2 | In Progress | - |
+| 4. Telegram Alerts | 2/2 | Complete | 2026-02-25 |
 | 5. Web Dashboard | 0/? | Not started | - |
 
 ---

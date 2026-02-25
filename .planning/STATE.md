@@ -22,17 +22,17 @@
 ## Current Position
 
 **Phase:** 4 — Telegram Alerts (Complete)
-**Plan:** 04-01 complete — TelegramAlerter module + pipeline integration (2 tasks, 3 minutes)
+**Plan:** 04-02 complete — TelegramAlerter test suite (1 task, 2 minutes)
 **Status:** Phase 4 complete
-**Last action:** Completed 04-01-PLAN.md (TelegramAlerter module, Config fields, app.py lifespan wiring, main.py alert dispatch, 2 tasks, 3 min)
+**Last action:** Completed 04-02-PLAN.md (12 tests for TelegramAlerter, all TELE requirements covered, 1 task, 2 min)
 
 ```
-Progress: [##################] 72%
+Progress: [####################] 80%
 
 Phase 1: Data Foundation     [x] Complete (2/2 plans done)
 Phase 2: Object Detection    [x] Complete (2/2 plans done)
 Phase 3: Pipeline Integration[x] Complete (2/2 plans done)
-Phase 4: Telegram Alerts     [x] Complete (1/1 plans done)
+Phase 4: Telegram Alerts     [x] Complete (2/2 plans done)
 Phase 5: Web Dashboard       [ ] Not started
 ```
 
@@ -46,8 +46,8 @@ Phase 5: Web Dashboard       [ ] Not started
 | Phases complete | 4 |
 | Requirements total (v1) | 27 |
 | Requirements complete | 4 |
-| Plans created | 7 |
-| Plans complete | 7 |
+| Plans created | 8 |
+| Plans complete | 8 |
 
 ---
 
@@ -69,6 +69,8 @@ Phase 5: Web Dashboard       [ ] Not started
 | python-telegram-bot 22.5 used (22.6 unavailable) | Version 22.6 does not exist on PyPI; 22.5 is functionally identical for all APIs used | Phase 4 |
 | asyncio.Lock released before HTTP I/O in TelegramAlerter | Prevents lock contention during slow Telegram sends; only guard timestamp check/update | Phase 4 |
 | Per-type coalescing timestamps (stranger vs unlock separate) | Ensures alert types never suppress each other; independent 60s windows per alert category | Phase 4 |
+| MagicMock(spec=ExtBot) + AsyncMock per method for Telegram tests | PTB class hierarchy makes fully spec'd AsyncMock unreliable; explicit per-method AsyncMock gives clean call assertions | Phase 4 |
+| Backdate _last_X_alert = time.monotonic() - N for coalescing tests | Simulates elapsed time in coalescing tests without real sleeping — tests run in milliseconds | Phase 4 |
 | WAL PRAGMAs applied before DDL statements | Required for WAL mode to activate correctly on first-time database creation | Phase 1 |
 | save_thumbnail() is synchronous (not async) | Pillow image I/O is CPU-bound; called before async DB write to avoid event loop blocking | Phase 1 |
 | Thumbnail failures isolated from event storage | try/except returns None on error — thumbnail failure must never prevent event record creation | Phase 1 |
@@ -124,6 +126,8 @@ None currently.
 3. Read `.planning/REQUIREMENTS.md` for requirement details
 4. Run `/gsd:execute-phase 5` to start Phase 5 (Web Dashboard)
 
+**Stopped at:** Completed 04-02-PLAN.md
+
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
 - `.planning/REQUIREMENTS.md` — all v1 requirements with IDs and traceability
@@ -138,4 +142,5 @@ None currently.
 *Last updated: 2026-02-25 — completed 02-02-PLAN.md (ObjectDetector test suite, 2 tasks, 16 tests pass, 30 total, 2m 17s). Phase 2 complete.*
 *Last updated: 2026-02-25 — completed 03-01-PLAN.md (FastAPI lifespan + full pipeline integration, 2 tasks, 3m). Phase 3 plan 1 of 2 complete.*
 *Last updated: 2026-02-25 — completed 03-02-PLAN.md (pipeline integration test suite, 2 tasks, 10 tests, 40 total, 4m). Phase 3 complete.*
-*Last updated: 2026-02-25 — completed 04-01-PLAN.md (TelegramAlerter module + pipeline integration, 2 tasks, 5 files, 3m). Phase 4 complete.*
+*Last updated: 2026-02-25 — completed 04-01-PLAN.md (TelegramAlerter module + pipeline integration, 2 tasks, 5 files, 3m). Phase 4 plan 1 of 2 complete.*
+*Last updated: 2026-02-25 — completed 04-02-PLAN.md (TelegramAlerter test suite, 1 task, 12 tests, 52 total, 2m). Phase 4 complete.*
