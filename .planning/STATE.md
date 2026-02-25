@@ -22,18 +22,18 @@
 ## Current Position
 
 **Phase:** 5 — Web Dashboard (In Progress)
-**Plan:** 05-01 complete — Backend prerequisites (EventStore query methods, dashboard config, app.state.switchbot)
-**Status:** In progress (1/3 plans complete in phase 5)
-**Last action:** Completed 05-01-PLAN.md (EventStore get_filtered_events + get_today_event_count, Config dashboard fields, app.state.switchbot, 2 tasks, 5 min)
+**Plan:** 05-02 complete — Dashboard router, auth, Jinja2 templates, event feed, summary widget, thumbnail serving
+**Status:** In progress (2/3 plans complete in phase 5)
+**Last action:** Completed 05-02-PLAN.md (dashboard/router.py with HTTP Basic Auth, 3 Jinja2 templates, app.py router mount, 2 tasks, 3 min)
 
 ```
-Progress: [######################] 84%
+Progress: [#######################] 88%
 
 Phase 1: Data Foundation     [x] Complete (2/2 plans done)
 Phase 2: Object Detection    [x] Complete (2/2 plans done)
 Phase 3: Pipeline Integration[x] Complete (2/2 plans done)
 Phase 4: Telegram Alerts     [x] Complete (2/2 plans done)
-Phase 5: Web Dashboard       [.] In Progress (1/3 plans done)
+Phase 5: Web Dashboard       [.] In Progress (2/3 plans done)
 ```
 
 ---
@@ -69,6 +69,9 @@ Phase 5: Web Dashboard       [.] In Progress (1/3 plans done)
 | get_filtered_events WHERE clause from literal SQL fragments only; object_type always parameterized | Safe f-string SQL pattern — user values never interpolated; documented in docstring to prevent future regressions | Phase 5 |
 | DASHBOARD_PASSWORD defaults to empty string; validate() rejects it | Prevents silent auth bypass on misconfigured deployments before server starts | Phase 5 |
 | app.state.switchbot exposed in lifespan alongside store and alerter | Dashboard summary route can call get_lock_status() via run_in_executor without global singleton | Phase 5 |
+| Router-level auth dependency (not per-route) | Single Depends(verify_credentials) on APIRouter enforces auth on every route including future ones — no per-route forgetting risk | Phase 5 |
+| basename Jinja2 filter in router.py for thumbnail path extraction | EventStore returns 'thumbnails/X.jpg'; URL requires just 'X.jpg'; centralizing in filter avoids duplicating split logic in each template | Phase 5 |
+| has_next heuristic (len==limit) over COUNT(*) | Avoids full table scan on every page request; acceptable UX tradeoff at home server scale | Phase 5 |
 | python-telegram-bot 22.5 used (22.6 unavailable) | Version 22.6 does not exist on PyPI; 22.5 is functionally identical for all APIs used | Phase 4 |
 | asyncio.Lock released before HTTP I/O in TelegramAlerter | Prevents lock contention during slow Telegram sends; only guard timestamp check/update | Phase 4 |
 | Per-type coalescing timestamps (stranger vs unlock separate) | Ensures alert types never suppress each other; independent 60s windows per alert category | Phase 4 |
@@ -127,9 +130,9 @@ None currently.
 1. Read this file for current position and context
 2. Read `.planning/ROADMAP.md` for phase goals and success criteria
 3. Read `.planning/REQUIREMENTS.md` for requirement details
-4. Run `/gsd:execute-phase 5` to continue Phase 5 (Web Dashboard) — next plan is 05-02
+4. Run `/gsd:execute-phase 5` to continue Phase 5 (Web Dashboard) — next plan is 05-03
 
-**Stopped at:** Completed 05-01-PLAN.md
+**Stopped at:** Completed 05-02-PLAN.md
 
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
@@ -148,3 +151,4 @@ None currently.
 *Last updated: 2026-02-25 — completed 04-01-PLAN.md (TelegramAlerter module + pipeline integration, 2 tasks, 5 files, 3m). Phase 4 plan 1 of 2 complete.*
 *Last updated: 2026-02-25 — completed 04-02-PLAN.md (TelegramAlerter test suite, 1 task, 12 tests, 52 total, 2m). Phase 4 complete.*
 *Last updated: 2026-02-25 — completed 05-01-PLAN.md (EventStore query methods, dashboard config fields, app.state.switchbot, 2 tasks, 5m). Phase 5 plan 1/3 complete.*
+*Last updated: 2026-02-25 — completed 05-02-PLAN.md (dashboard router + auth + Jinja2 templates + app.py router mount, 2 tasks, 3m). Phase 5 plan 2/3 complete.*

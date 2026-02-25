@@ -34,11 +34,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Web Dashboard
 
-- [ ] **DASH-01**: User can view a scrollable event history feed with thumbnail, timestamp, detected objects, and recognized person
-- [ ] **DASH-02**: User can filter events by date range (today, last 7 days, last 30 days)
-- [ ] **DASH-03**: User can filter events by object type (person, dog, cat, car, package)
-- [ ] **DASH-04**: Dashboard shows a summary widget with today's event count, last event card, and current lock status
-- [ ] **DASH-05**: Dashboard serves event thumbnails securely (no unauthenticated access)
+- [x] **DASH-01**: User can view a scrollable event history feed with thumbnail, timestamp, detected objects, and recognized person
+- [x] **DASH-02**: User can filter events by date range (today, last 7 days, last 30 days)
+- [x] **DASH-03**: User can filter events by object type (person, dog, cat, car, package)
+- [x] **DASH-04**: Dashboard shows a summary widget with today's event count, last event card, and current lock status
+- [x] **DASH-05**: Dashboard serves event thumbnails securely (no unauthenticated access)
 - [x] **DASH-06**: Dashboard uses server-side pagination for event history (not loading all events at once)
 - [x] **DASH-07**: Dashboard is protected by HTTP Basic Auth
 
@@ -115,13 +115,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TELE-03 | Phase 4 | Complete (04-01) |
 | TELE-04 | Phase 4 | Complete (04-01) |
 | TELE-05 | Phase 4 | Complete (04-01) |
-| DASH-01 | Phase 5 | Pending |
-| DASH-02 | Phase 5 | Pending |
-| DASH-03 | Phase 5 | Pending |
-| DASH-04 | Phase 5 | Partial (backend ready in 05-01; widget in 05-02) |
-| DASH-05 | Phase 5 | Pending |
-| DASH-06 | Phase 5 | Complete (05-01 — pagination via limit/offset in get_filtered_events) |
-| DASH-07 | Phase 5 | Complete (05-01 — DASHBOARD_PASSWORD in Config; verify_credentials in 05-02) |
+| DASH-01 | Phase 5 | Complete (05-02 — events.html feed with thumbnails, timestamps, detections, person name) |
+| DASH-02 | Phase 5 | Complete (05-02 — date_range filter in events.html + get_filtered_events) |
+| DASH-03 | Phase 5 | Complete (05-02 — object_type filter in events.html + get_filtered_events) |
+| DASH-04 | Phase 5 | Complete (05-02 — dashboard.html summary widget: today_count, last_event, lock_status) |
+| DASH-05 | Phase 5 | Complete (05-02 — FileResponse thumbnail route with router-level auth; path traversal blocked) |
+| DASH-06 | Phase 5 | Complete (05-01 — pagination via limit/offset in get_filtered_events; has_next heuristic in 05-02) |
+| DASH-07 | Phase 5 | Complete (05-01 — DASHBOARD_PASSWORD in Config; 05-02 — verify_credentials with secrets.compare_digest) |
 
 **Coverage:**
 - v1 requirements: 27 total
@@ -135,3 +135,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 *Last updated: 2026-02-25 — PIPE-01 through PIPE-04 complete after 03-01-PLAN.md (FastAPI lifespan + full pipeline).*
 *Last updated: 2026-02-25 — TELE-01 through TELE-05 complete after 04-01-PLAN.md (TelegramAlerter module + pipeline integration).*
 *Last updated: 2026-02-25 — DASH-06, DASH-07 backend prerequisites complete after 05-01-PLAN.md; DASH-04 partial (backend ready).*
+*Last updated: 2026-02-25 — DASH-01 through DASH-07 all complete after 05-02-PLAN.md (dashboard router + Jinja2 templates).*
