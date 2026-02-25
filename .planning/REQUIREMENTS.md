@@ -26,11 +26,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Telegram Alerts
 
-- [ ] **TELE-01**: System sends Telegram alert with thumbnail when an unrecognized person is detected at the door
-- [ ] **TELE-02**: System sends Telegram confirmation when a known person is recognized and the door is unlocked
-- [ ] **TELE-03**: Telegram alerts include event thumbnail photo and descriptive caption in a single message
-- [ ] **TELE-04**: System implements 60-second alert coalescing to prevent Telegram flood during burst events
-- [ ] **TELE-05**: System respects Telegram rate limits using AIORateLimiter
+- [x] **TELE-01**: System sends Telegram alert with thumbnail when an unrecognized person is detected at the door
+- [x] **TELE-02**: System sends Telegram confirmation when a known person is recognized and the door is unlocked
+- [x] **TELE-03**: Telegram alerts include event thumbnail photo and descriptive caption in a single message
+- [x] **TELE-04**: System implements 60-second alert coalescing to prevent Telegram flood during burst events
+- [x] **TELE-05**: System respects Telegram rate limits using AIORateLimiter
 
 ### Web Dashboard
 
@@ -110,11 +110,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-02 | Phase 3 | Complete (03-01) |
 | PIPE-03 | Phase 3 | Complete (03-01) |
 | PIPE-04 | Phase 3 | Complete (03-01) |
-| TELE-01 | Phase 4 | Pending |
-| TELE-02 | Phase 4 | Pending |
-| TELE-03 | Phase 4 | Pending |
-| TELE-04 | Phase 4 | Pending |
-| TELE-05 | Phase 4 | Pending |
+| TELE-01 | Phase 4 | Complete (04-01) |
+| TELE-02 | Phase 4 | Complete (04-01) |
+| TELE-03 | Phase 4 | Complete (04-01) |
+| TELE-04 | Phase 4 | Complete (04-01) |
+| TELE-05 | Phase 4 | Complete (04-01) |
 | DASH-01 | Phase 5 | Pending |
 | DASH-02 | Phase 5 | Pending |
 | DASH-03 | Phase 5 | Pending |
@@ -133,3 +133,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 *Last updated: 2026-02-25 — DATA-01 through DATA-06 complete after 01-01-PLAN.md*
 *Last updated: 2026-02-25 — YOLO-01 through YOLO-05 implementation complete (02-01) and validated by 16-test suite (02-02). Phase 2 complete.*
 *Last updated: 2026-02-25 — PIPE-01 through PIPE-04 complete after 03-01-PLAN.md (FastAPI lifespan + full pipeline).*
+*Last updated: 2026-02-25 — TELE-01 through TELE-05 complete after 04-01-PLAN.md (TelegramAlerter module + pipeline integration).*

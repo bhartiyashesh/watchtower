@@ -21,18 +21,18 @@
 
 ## Current Position
 
-**Phase:** 4 — Telegram Alerts (Not started)
-**Plan:** 03-02 complete — pipeline integration test suite (10 tests, 40 total)
-**Status:** Milestone complete
-**Last action:** Completed 03-02-PLAN.md (pipeline test suite, 2 tasks, 10 tests, 4 minutes)
+**Phase:** 4 — Telegram Alerts (Complete)
+**Plan:** 04-01 complete — TelegramAlerter module + pipeline integration (2 tasks, 3 minutes)
+**Status:** Phase 4 complete
+**Last action:** Completed 04-01-PLAN.md (TelegramAlerter module, Config fields, app.py lifespan wiring, main.py alert dispatch, 2 tasks, 3 min)
 
 ```
-Progress: [###############] 60%
+Progress: [##################] 72%
 
 Phase 1: Data Foundation     [x] Complete (2/2 plans done)
 Phase 2: Object Detection    [x] Complete (2/2 plans done)
 Phase 3: Pipeline Integration[x] Complete (2/2 plans done)
-Phase 4: Telegram Alerts     [ ] Not started
+Phase 4: Telegram Alerts     [x] Complete (1/1 plans done)
 Phase 5: Web Dashboard       [ ] Not started
 ```
 
@@ -43,11 +43,11 @@ Phase 5: Web Dashboard       [ ] Not started
 | Metric | Value |
 |--------|-------|
 | Phases total | 5 |
-| Phases complete | 3 |
+| Phases complete | 4 |
 | Requirements total (v1) | 27 |
 | Requirements complete | 4 |
-| Plans created | 6 |
-| Plans complete | 6 |
+| Plans created | 7 |
+| Plans complete | 7 |
 
 ---
 
@@ -66,6 +66,9 @@ Phase 5: Web Dashboard       [ ] Not started
 | Telegram Bot class direct use (not Application.run_polling()) | Application creates its own loop, conflicts with FastAPI/uvicorn loop | Phase 4 |
 | AIORateLimiter + 60-second coalescing | Prevents Telegram flood ban from burst Ring events | Phase 4 |
 | FileResponse for thumbnails (not StaticFiles) | Allows per-request Basic Auth enforcement; StaticFiles bypasses middleware auth | Phase 5 |
+| python-telegram-bot 22.5 used (22.6 unavailable) | Version 22.6 does not exist on PyPI; 22.5 is functionally identical for all APIs used | Phase 4 |
+| asyncio.Lock released before HTTP I/O in TelegramAlerter | Prevents lock contention during slow Telegram sends; only guard timestamp check/update | Phase 4 |
+| Per-type coalescing timestamps (stranger vs unlock separate) | Ensures alert types never suppress each other; independent 60s windows per alert category | Phase 4 |
 | WAL PRAGMAs applied before DDL statements | Required for WAL mode to activate correctly on first-time database creation | Phase 1 |
 | save_thumbnail() is synchronous (not async) | Pillow image I/O is CPU-bound; called before async DB write to avoid event loop blocking | Phase 1 |
 | Thumbnail failures isolated from event storage | try/except returns None on error — thumbnail failure must never prevent event record creation | Phase 1 |
@@ -119,7 +122,7 @@ None currently.
 1. Read this file for current position and context
 2. Read `.planning/ROADMAP.md` for phase goals and success criteria
 3. Read `.planning/REQUIREMENTS.md` for requirement details
-4. Run `/gsd:execute-phase 4` to start Phase 4 (Telegram Alerts)
+4. Run `/gsd:execute-phase 5` to start Phase 5 (Web Dashboard)
 
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
@@ -135,3 +138,4 @@ None currently.
 *Last updated: 2026-02-25 — completed 02-02-PLAN.md (ObjectDetector test suite, 2 tasks, 16 tests pass, 30 total, 2m 17s). Phase 2 complete.*
 *Last updated: 2026-02-25 — completed 03-01-PLAN.md (FastAPI lifespan + full pipeline integration, 2 tasks, 3m). Phase 3 plan 1 of 2 complete.*
 *Last updated: 2026-02-25 — completed 03-02-PLAN.md (pipeline integration test suite, 2 tasks, 10 tests, 40 total, 4m). Phase 3 complete.*
+*Last updated: 2026-02-25 — completed 04-01-PLAN.md (TelegramAlerter module + pipeline integration, 2 tasks, 5 files, 3m). Phase 4 complete.*
