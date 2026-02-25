@@ -291,6 +291,80 @@ class EventStore:
 
         return events
 
+    async def get_today_event_count(self) -> int:
+        """Count events recorded today (UTC calendar day)."""
+        async with self.db.execute(
+            "SELECT COUNT(*) FROM events WHERE DATE(recorded_at) = DATE('now')"
+        ) as cursor:
+            row = await cursor.fetchone()
+        return row[0] if row else 0
+
+    async def get_filtered_events(
+        self,
+        limit: int = 20,
+        offset: int = 0,
+        date_range: str = "all",
+        object_type: str = "all",
+    ) -> list[dict]:
+        """
+        Retrieve events with optional date range and object type filters.
+
+        Args:
+            limit: Maximum number of events to return.
+            offset: Number of events to skip (for pagination).
+            date_range: One of "today", "7d", "30d", or "all".
+            object_type: One of "person", "dog", "cat", "car", "package", or "all".
+
+        Returns:
+            List of event dicts ordered by recorded_at DESC, each including a
+            nested 'detections' list.
+
+        Security note: The where_clause fragments are literal SQL strings (never
+        user input). The object_type value is always passed via a parameterized
+        ? placeholder, never interpolated into the SQL string.
+        """
+        where_fragments = []
+        params: list = []
+
+        # Date range filter — literal SQL fragments only
+        if date_range == "today":
+            where_fragments.append("DATE(recorded_at) = DATE('now')")
+        elif date_range == "7d":
+            where_fragments.append("recorded_at >= datetime('now', '-7 days')")
+        elif date_range == "30d":
+            where_fragments.append("recorded_at >= datetime('now', '-30 days')")
+        # "all" adds no filter
+
+        # Object type filter — object_type value is parameterized (never interpolated)
+        if object_type != "all":
+            where_fragments.append(
+                "EXISTS (SELECT 1 FROM detections d WHERE d.event_id = events.id AND d.label = ?)"
+            )
+            params.append(object_type)
+
+        # Build final SQL
+        where_clause = ""
+        if where_fragments:
+            where_clause = "WHERE " + " AND ".join(where_fragments)
+
+        sql = f"SELECT * FROM events {where_clause} ORDER BY recorded_at DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        async with self.db.execute(sql, params) as cursor:
+            rows = await cursor.fetchall()
+
+        events = []
+        for row in rows:
+            event = dict(row)
+            async with self.db.execute(
+                "SELECT * FROM detections WHERE event_id = ?", (event["id"],)
+            ) as det_cursor:
+                det_rows = await det_cursor.fetchall()
+            event["detections"] = [dict(r) for r in det_rows]
+            events.append(event)
+
+        return events
+
     async def close(self) -> None:
         """Close the database connection and release resources."""
         if self.db is not None:
