@@ -28,7 +28,10 @@
   3. A JPEG thumbnail file is saved to disk and its path is stored in the event record — no thumbnail data is stored as a BLOB
   4. An unlock/lock action is logged with person name, confidence, and success status and appears in the events table
   5. Concurrent read and write operations against the database complete without "database is locked" errors (WAL mode confirmed active)
-**Plans**: TBD
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — EventStore module with full schema, WAL mode, and CRUD methods
+- [ ] 01-02-PLAN.md — Comprehensive test suite validating all DATA requirements and concurrent access
 
 ### Phase 2: Object Detection
 **Goal**: YOLO11n detects objects in doorbell frames without blocking the asyncio event loop
@@ -81,7 +84,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Data Foundation | 0/? | Not started | - |
+| 1. Data Foundation | 0/2 | Planned | - |
 | 2. Object Detection | 0/? | Not started | - |
 | 3. Pipeline Integration | 0/? | Not started | - |
 | 4. Telegram Alerts | 0/? | Not started | - |
