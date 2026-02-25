@@ -10,7 +10,7 @@
 
 - [x] **Phase 1: Data Foundation** - SQLite schema and EventStore module that every other feature depends on
 - [x] **Phase 2: Object Detection** - YOLO11n object detector wrapped behind async interface, benchmarked on target hardware
-- [ ] **Phase 3: Pipeline Integration** - Full motion event pipeline wired end-to-end with persistent event records
+- [x] **Phase 3: Pipeline Integration** - Full motion event pipeline wired end-to-end with persistent event records
 - [ ] **Phase 4: Telegram Alerts** - Real-time stranger and unlock alerts with flood control
 - [ ] **Phase 5: Web Dashboard** - Authenticated FastAPI dashboard with event history, filters, and summary widget
 
@@ -59,7 +59,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 03-01-PLAN.md — FastAPI app with lifespan, full polling loop pipeline (Ring -> YOLO -> face recognition -> EventStore -> SwitchBot)
-- [ ] 03-02-PLAN.md — Comprehensive test suite validating all PIPE requirements with mocked external services
+- [x] 03-02-PLAN.md — Comprehensive test suite validating all PIPE requirements with mocked external services
 
 ### Phase 4: Telegram Alerts
 **Goal**: Homeowner receives real-time photo alerts for strangers and unlock confirmations on Telegram
@@ -92,7 +92,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 2/2 | Complete | 2026-02-25 |
 | 2. Object Detection | 2/2 | Complete | 2026-02-25 |
-| 3. Pipeline Integration | 1/2 | In Progress | - |
+| 3. Pipeline Integration | 2/2 | Complete | 2026-02-25 |
 | 4. Telegram Alerts | 0/? | Not started | - |
 | 5. Web Dashboard | 0/? | Not started | - |
 
