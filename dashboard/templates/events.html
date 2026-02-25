@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Event History - Smart Lock{% endblock %}
+
+{% block content %}
+<h1>Event History</h1>
+
+<!-- Filter form -->
+<form class="filter-form" method="GET" action="/dashboard/events">
+    <label for="date_range">Date range:</label>
+    <select id="date_range" name="date_range">
+        <option value="all"   {% if date_range == "all"   %}selected{% endif %}>All time</option>
+        <option value="today" {% if date_range == "today" %}selected{% endif %}>Today</option>
+        <option value="7d"    {% if date_range == "7d"    %}selected{% endif %}>Last 7 days</option>
+        <option value="30d"   {% if date_range == "30d"   %}selected{% endif %}>Last 30 days</option>
+    </select>
+
+    <label for="object_type">Object type:</label>
+    <select id="object_type" name="object_type">
+        <option value="all"     {% if object_type == "all"     %}selected{% endif %}>All types</option>
+        <option value="person"  {% if object_type == "person"  %}selected{% endif %}>Person</option>
+        <option value="dog"     {% if object_type == "dog"     %}selected{% endif %}>Dog</option>
+        <option value="cat"     {% if object_type == "cat"     %}selected{% endif %}>Cat</option>
+        <option value="car"     {% if object_type == "car"     %}selected{% endif %}>Car</option>
+        <option value="package" {% if object_type == "package" %}selected{% endif %}>Package</option>
+    </select>
+
+    <!-- Preserve pagination limit across filter submissions -->
+    <input type="hidden" name="limit" value="{{ limit }}">
+
+    <button type="submit">Filter</button>
+</form>
+
+<!-- Event list -->
+{% if events %}
+    {% for event in events %}
+        <div class="event-card">
+            {% if event.thumbnail_path %}
+                <img
+                    src="/dashboard/thumbnails/{{ event.thumbnail_path | basename }}"
+                    alt="Thumbnail for event at {{ event.recorded_at }}"
+                >
+            {% endif %}
+            <div class="event-info">
+                <div class="event-meta">{{ event.recorded_at }}</div>
+                <div class="event-title">
+                    {% if event.person_name %}
+                        {{ event.person_name }}
+                    {% else %}
+                        No match
+                    {% endif %}
+                </div>
+                <div><strong>Type:</strong> {{ event.event_type }}</div>
+                {% if event.door_action and event.door_action != "none" %}
+                    <div><strong>Door action:</strong> {{ event.door_action }}</div>
+                {% endif %}
+                {% if event.detections %}
+                    <div class="event-tags">
+                        {% for det in event.detections %}
+                            <span class="tag {% if det.label == 'person' %}tag-person{% endif %}">
+                                {{ det.label }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="empty-state">
+        No events match the selected filters.
+    </div>
+{% endif %}
+
+<!-- Pagination controls -->
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="/dashboard/events?page={{ page - 1 }}&limit={{ limit }}&date_range={{ date_range }}&object_type={{ object_type }}">
+            &larr; Previous
+        </a>
+    {% endif %}
+
+    <span class="current-page">Page {{ page }}</span>
+
+    {% if has_next %}
+        <a href="/dashboard/events?page={{ page + 1 }}&limit={{ limit }}&date_range={{ date_range }}&object_type={{ object_type }}">
+            Next &rarr;
+        </a>
+    {% endif %}
+</div>
+{% endblock %}

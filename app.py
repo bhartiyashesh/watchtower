@@ -26,6 +26,7 @@ from object_detector import ObjectDetector
 from event_store import EventStore
 from telegram_alerter import TelegramAlerter
 from main import polling_loop
+from dashboard.router import router as dashboard_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -133,6 +134,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="Smart Lock System")
+app.include_router(dashboard_router)
 
 
 @app.get("/health")

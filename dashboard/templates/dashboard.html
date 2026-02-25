@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Smart Lock{% endblock %}
+
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="card-grid">
+    <!-- Today's event count -->
+    <div class="stat-card">
+        <div class="stat-label">Events Today</div>
+        <div class="stat-value">{{ today_count }}</div>
+        <div class="stat-sub">Ring doorbell events since midnight UTC</div>
+    </div>
+
+    <!-- Lock status -->
+    <div class="stat-card">
+        <div class="stat-label">Lock Status</div>
+        <div style="margin-top: 0.5rem;">
+            {% if lock_status and lock_status is mapping %}
+                {% set state = lock_status.get("lockState", "unknown") %}
+                {% if state == "locked" %}
+                    <span class="lock-badge lock-locked">Locked</span>
+                {% elif state == "unlocked" %}
+                    <span class="lock-badge lock-unlocked">Unlocked</span>
+                {% else %}
+                    <span class="lock-badge lock-unknown">{{ state | title }}</span>
+                {% endif %}
+            {% else %}
+                <span class="lock-badge lock-unknown">Unknown</span>
+            {% endif %}
+        </div>
+        <div class="stat-sub" style="margin-top: 0.5rem;">
+            {% if lock_status and lock_status is mapping %}
+                Live status from SwitchBot
+            {% else %}
+                Could not retrieve live status
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Most recent event -->
+<h2>Most Recent Event</h2>
+{% if last_event %}
+    <div class="event-card">
+        {% if last_event.thumbnail_path %}
+            <img
+                src="/dashboard/thumbnails/{{ last_event.thumbnail_path | basename }}"
+                alt="Thumbnail for event at {{ last_event.recorded_at }}"
+            >
+        {% endif %}
+        <div class="event-info">
+            <div class="event-meta">{{ last_event.recorded_at }}</div>
+            <div class="event-title">
+                {% if last_event.person_name %}
+                    {{ last_event.person_name }}
+                {% else %}
+                    Unknown visitor
+                {% endif %}
+            </div>
+            <div>
+                <strong>Event type:</strong> {{ last_event.event_type }}
+            </div>
+            {% if last_event.door_action and last_event.door_action != "none" %}
+                <div>
+                    <strong>Door action:</strong> {{ last_event.door_action }}
+                </div>
+            {% endif %}
+            {% if last_event.detections %}
+                <div class="event-tags">
+                    {% for det in last_event.detections %}
+                        <span class="tag {% if det.label == 'person' %}tag-person{% endif %}">
+                            {{ det.label }}
+                        </span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% else %}
+    <div class="empty-state">
+        No events recorded yet.
+    </div>
+{% endif %}
+
+<a href="/dashboard/events" class="link-btn">View full event history</a>
+{% endblock %}
