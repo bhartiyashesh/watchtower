@@ -8,7 +8,7 @@
 
 **Core Value:** Automatically unlock the door for recognized household members while building a comprehensive activity log of everything happening at your doorstep — accessible through a searchable web dashboard with real-time Telegram alerts.
 
-**Current Focus:** Phase 5 — Web Dashboard
+**Current Focus:** Complete — All 5 phases delivered
 
 **Stack:**
 - Python 3.12 (pinned — dlib incompatible with 3.13)
@@ -21,19 +21,19 @@
 
 ## Current Position
 
-**Phase:** 5 — Web Dashboard (In Progress)
-**Plan:** 05-02 complete — Dashboard router, auth, Jinja2 templates, event feed, summary widget, thumbnail serving
-**Status:** In progress (2/3 plans complete in phase 5)
-**Last action:** Completed 05-02-PLAN.md (dashboard/router.py with HTTP Basic Auth, 3 Jinja2 templates, app.py router mount, 2 tasks, 3 min)
+**Phase:** 5 — Web Dashboard (Complete)
+**Plan:** 05-03 complete — Dashboard test suite, 15 tests covering all DASH requirements
+**Status:** COMPLETE — All 5 phases, 11 plans, 27 requirements delivered
+**Last action:** Completed 05-03-PLAN.md (dashboard test suite, 15 tests, 67 total, 4min). Phase 5 complete.
 
 ```
-Progress: [#######################] 88%
+Progress: [##########################] 100%
 
 Phase 1: Data Foundation     [x] Complete (2/2 plans done)
 Phase 2: Object Detection    [x] Complete (2/2 plans done)
 Phase 3: Pipeline Integration[x] Complete (2/2 plans done)
 Phase 4: Telegram Alerts     [x] Complete (2/2 plans done)
-Phase 5: Web Dashboard       [.] In Progress (2/3 plans done)
+Phase 5: Web Dashboard       [x] Complete (3/3 plans done)
 ```
 
 ---
@@ -43,11 +43,13 @@ Phase 5: Web Dashboard       [.] In Progress (2/3 plans done)
 | Metric | Value |
 |--------|-------|
 | Phases total | 5 |
-| Phases complete | 4 |
+| Phases complete | 5 |
 | Requirements total (v1) | 27 |
-| Requirements complete | 4 |
+| Requirements complete | 27 |
 | Plans created | 11 |
-| Plans complete | 9 |
+| Plans complete | 11 |
+
+| Phase 05-web-dashboard P03 | 4min | 2 tasks | 1 files |
 
 ---
 
@@ -90,6 +92,7 @@ Phase 5: Web Dashboard       [.] In Progress (2/3 plans done)
 | app.state.store exposes EventStore to future route handlers | Phase 5 dashboard routes access store via app.state; no global singleton needed | Phase 3 |
 | Patch detector.detect for face-match pipeline tests | Synthetic gray test frames produce no YOLO person detections; patching isolates pipeline logic from YOLO accuracy | Phase 3 |
 | Cooldown does not skip EventStore write | First cooldown check falls through (logs only); second check at unlock dispatch sets unlock_granted=0 on cooldown events | Phase 3 |
+- [Phase 05-web-dashboard]: Path traversal test accepts 400 or 404 — Starlette normalizes ../../.env before route handler; attack blocked either way
 
 ### Known Risks (from research)
 
@@ -126,13 +129,15 @@ None currently.
 
 ## Session Continuity
 
-**To resume work:**
-1. Read this file for current position and context
-2. Read `.planning/ROADMAP.md` for phase goals and success criteria
-3. Read `.planning/REQUIREMENTS.md` for requirement details
-4. Run `/gsd:execute-phase 5` to continue Phase 5 (Web Dashboard) — next plan is 05-03
+**Project is complete.** All 5 phases, 11 plans, and 27 v1 requirements are delivered.
 
-**Stopped at:** Completed 05-02-PLAN.md
+To deploy:
+1. Copy project to Raspberry Pi 4
+2. Configure `.env` with Ring, SwitchBot, Telegram, and Dashboard credentials
+3. Run `uvicorn app:app --host 0.0.0.0 --port 8000`
+4. Access dashboard at `http://<pi-ip>:8000/dashboard/`
+
+**Stopped at:** Completed 05-03-PLAN.md (dashboard test suite, 15 tests, 67 total, 4min). Phase 5 complete.
 
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
@@ -152,3 +157,4 @@ None currently.
 *Last updated: 2026-02-25 — completed 04-02-PLAN.md (TelegramAlerter test suite, 1 task, 12 tests, 52 total, 2m). Phase 4 complete.*
 *Last updated: 2026-02-25 — completed 05-01-PLAN.md (EventStore query methods, dashboard config fields, app.state.switchbot, 2 tasks, 5m). Phase 5 plan 1/3 complete.*
 *Last updated: 2026-02-25 — completed 05-02-PLAN.md (dashboard router + auth + Jinja2 templates + app.py router mount, 2 tasks, 3m). Phase 5 plan 2/3 complete.*
+*Last updated: 2026-02-25 — completed 05-03-PLAN.md (dashboard test suite, 15 tests, 67 total, 4min). Phase 5 complete. Project v1 DONE.*
