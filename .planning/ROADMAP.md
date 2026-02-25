@@ -9,7 +9,7 @@
 ## Phases
 
 - [x] **Phase 1: Data Foundation** - SQLite schema and EventStore module that every other feature depends on
-- [ ] **Phase 2: Object Detection** - YOLO11n object detector wrapped behind async interface, benchmarked on target hardware
+- [x] **Phase 2: Object Detection** - YOLO11n object detector wrapped behind async interface, benchmarked on target hardware
 - [ ] **Phase 3: Pipeline Integration** - Full motion event pipeline wired end-to-end with persistent event records
 - [ ] **Phase 4: Telegram Alerts** - Real-time stranger and unlock alerts with flood control
 - [ ] **Phase 5: Web Dashboard** - Authenticated FastAPI dashboard with event history, filters, and summary widget
@@ -45,7 +45,7 @@ Plans:
 **Plans:** 2 plans
 Plans:
 - [x] 02-01-PLAN.md — ObjectDetector module with YOLO11n wrapper, async detect, person crop, config update
-- [ ] 02-02-PLAN.md — Comprehensive test suite validating all YOLO requirements and non-blocking behavior
+- [x] 02-02-PLAN.md — Comprehensive test suite validating all YOLO requirements and non-blocking behavior
 
 ### Phase 3: Pipeline Integration
 **Goal**: Every Ring motion event flows through detection, recognition, and persistence automatically
@@ -88,7 +88,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Data Foundation | 2/2 | Complete | 2026-02-25 |
-| 2. Object Detection | 1/2 | In progress | - |
+| 2. Object Detection | 2/2 | Complete | 2026-02-25 |
 | 3. Pipeline Integration | 0/? | Not started | - |
 | 4. Telegram Alerts | 0/? | Not started | - |
 | 5. Web Dashboard | 0/? | Not started | - |

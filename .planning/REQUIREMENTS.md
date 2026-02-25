@@ -18,11 +18,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Object Detection
 
-- [ ] **YOLO-01**: System runs YOLO11n object detection on every captured doorbell frame
-- [ ] **YOLO-02**: System detects and labels: people, dogs, cats, cars, and packages
-- [ ] **YOLO-03**: YOLO inference runs in a thread executor so it does not block the async event loop
-- [ ] **YOLO-04**: System stores detection class and confidence score per detected object in the event record
-- [ ] **YOLO-05**: Face recognition runs on YOLO-cropped person bounding boxes instead of full frame
+- [x] **YOLO-01**: System runs YOLO11n object detection on every captured doorbell frame
+- [x] **YOLO-02**: System detects and labels: people, dogs, cats, cars, and packages
+- [x] **YOLO-03**: YOLO inference runs in a thread executor so it does not block the async event loop
+- [x] **YOLO-04**: System stores detection class and confidence score per detected object in the event record
+- [x] **YOLO-05**: Face recognition runs on YOLO-cropped person bounding boxes instead of full frame
 
 ### Telegram Alerts
 
@@ -101,11 +101,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-04 | Phase 1 | Complete (01-01) |
 | DATA-05 | Phase 1 | Complete (01-01) |
 | DATA-06 | Phase 1 | Complete (01-01) |
-| YOLO-01 | Phase 2 | In progress (02-01) |
-| YOLO-02 | Phase 2 | In progress (02-01) |
-| YOLO-03 | Phase 2 | In progress (02-01) |
-| YOLO-04 | Phase 2 | In progress (02-01) |
-| YOLO-05 | Phase 2 | In progress (02-01) |
+| YOLO-01 | Phase 2 | Complete (02-01, 02-02) |
+| YOLO-02 | Phase 2 | Complete (02-01, 02-02) |
+| YOLO-03 | Phase 2 | Complete (02-01, 02-02) |
+| YOLO-04 | Phase 2 | Complete (02-01, 02-02) |
+| YOLO-05 | Phase 2 | Complete (02-01, 02-02) |
 | PIPE-01 | Phase 3 | Pending |
 | PIPE-02 | Phase 3 | Pending |
 | PIPE-03 | Phase 3 | Pending |
@@ -131,4 +131,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 ---
 *Requirements defined: 2026-02-24*
 *Last updated: 2026-02-25 — DATA-01 through DATA-06 complete after 01-01-PLAN.md*
-*Last updated: 2026-02-25 — YOLO-01 through YOLO-05 implementation complete in 02-01-PLAN.md; validation via test suite in 02-02-PLAN.md*
+*Last updated: 2026-02-25 — YOLO-01 through YOLO-05 implementation complete (02-01) and validated by 16-test suite (02-02). Phase 2 complete.*

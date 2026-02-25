@@ -21,16 +21,16 @@
 
 ## Current Position
 
-**Phase:** 2 — Object Detection (In Progress)
-**Plan:** 02-01 complete — ObjectDetector module created
-**Status:** Plan complete
-**Last action:** Completed 02-01-PLAN.md (ObjectDetector module, 2 tasks, ultralytics installed, 3 minutes)
+**Phase:** 2 — Object Detection (Complete)
+**Plan:** 02-02 complete — ObjectDetector test suite created
+**Status:** Phase complete
+**Last action:** Completed 02-02-PLAN.md (ObjectDetector test suite, 2 tasks, 30 tests passing, 2 minutes 17 seconds)
 
 ```
-Progress: [######----] 30%
+Progress: [########--] 40%
 
 Phase 1: Data Foundation     [x] Complete (2/2 plans done)
-Phase 2: Object Detection    [>] In progress (1/2 plans done)
+Phase 2: Object Detection    [x] Complete (2/2 plans done)
 Phase 3: Pipeline Integration[ ] Not started
 Phase 4: Telegram Alerts     [ ] Not started
 Phase 5: Web Dashboard       [ ] Not started
@@ -71,6 +71,9 @@ Phase 5: Web Dashboard       [ ] Not started
 | Thumbnail failures isolated from event storage | try/except returns None on error — thumbnail failure must never prevent event record creation | Phase 1 |
 | pytest-asyncio strict mode | All async tests require explicit @pytest.mark.asyncio decorator; prevents accidental silent skips | Phase 1 |
 | Each test gets isolated temp directory | Prevents test interference; tests can run in any order | Phase 1 |
+| Module-scoped detector fixture for YOLO tests | YOLO model load takes 1-2 seconds; sharing one instance across 16 tests avoids reloading model per-test | Phase 2 |
+| 250ms RPi 4 NCNN benchmark deferred | Cannot validate on macOS dev environment; 5s smoke test confirms code path functional; defer to on-device testing | Phase 2 |
+| Heartbeat gap threshold 500ms for non-blocking test | Generous threshold accounts for macOS scheduler variability; executor correctness proven by gap staying near 100ms | Phase 2 |
 
 ### Known Risks (from research)
 
@@ -111,7 +114,7 @@ None currently.
 1. Read this file for current position and context
 2. Read `.planning/ROADMAP.md` for phase goals and success criteria
 3. Read `.planning/REQUIREMENTS.md` for requirement details
-4. Run `/gsd:execute-phase 2` to continue Phase 2 (02-02-PLAN.md — YOLO test suite)
+4. Run `/gsd:execute-phase 3` to start Phase 3 (Pipeline Integration)
 
 **Files on disk:**
 - `.planning/PROJECT.md` — project context, constraints, key decisions
@@ -124,3 +127,4 @@ None currently.
 *State initialized: 2026-02-25*
 *Last updated: 2026-02-25 — completed 01-02-PLAN.md (EventStore test suite, 2 tasks, 14 tests pass, 1m 49s). Phase 1 complete.*
 *Last updated: 2026-02-25 — completed 02-01-PLAN.md (ObjectDetector module, 2 tasks, ultralytics==8.4.16 installed, object_detector.py 268 lines, 3m 3s).*
+*Last updated: 2026-02-25 — completed 02-02-PLAN.md (ObjectDetector test suite, 2 tasks, 16 tests pass, 30 total, 2m 17s). Phase 2 complete.*
