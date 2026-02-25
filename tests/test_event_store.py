@@ -324,3 +324,46 @@ async def test_ding_event_type(store):
     event = await store.get_event(event_id)
 
     assert event["event_type"] == "ding"
+
+
+# ---------------------------------------------------------------------------
+# Schema integrity: foreign key enforcement
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_foreign_key_enforcement(store):
+    """PRAGMA foreign_keys=ON is active: inserting a detection with a fake event_id raises IntegrityError."""
+    import aiosqlite
+
+    # Attempt to insert a detection referencing a non-existent event (event_id=9999)
+    with pytest.raises(aiosqlite.IntegrityError):
+        await store.db.execute(
+            "INSERT INTO detections (event_id, label, confidence) VALUES (?, ?, ?)",
+            (9999, "person", 0.99),
+        )
+        await store.db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Schema integrity: persons table UNIQUE constraint
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_persons_table_unique_constraint(store):
+    """Persons table enforces UNIQUE(name): inserting duplicate name raises IntegrityError."""
+    import aiosqlite
+
+    # First insert should succeed
+    await store.db.execute(
+        "INSERT INTO persons (name, display_name) VALUES (?, ?)",
+        ("carol", "Carol"),
+    )
+    await store.db.commit()
+
+    # Second insert with same name must raise IntegrityError
+    with pytest.raises(aiosqlite.IntegrityError):
+        await store.db.execute(
+            "INSERT INTO persons (name, display_name) VALUES (?, ?)",
+            ("carol", "Carol Duplicate"),
+        )
+        await store.db.commit()
