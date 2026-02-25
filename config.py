@@ -35,6 +35,10 @@ class Config:
     FASTAPI_HOST: str = os.getenv("FASTAPI_HOST", "127.0.0.1")
     FASTAPI_PORT: int = int(os.getenv("FASTAPI_PORT", "8000"))
 
+    # Telegram Alerts (Phase 4)
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
+
     @classmethod
     def validate(cls) -> list[str]:
         errors = []

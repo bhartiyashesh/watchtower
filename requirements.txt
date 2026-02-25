@@ -9,3 +9,4 @@ aiosqlite==0.22.1
 aiofiles==24.1.0
 ultralytics==8.4.16
 fastapi[standard]>=0.115.0
+python-telegram-bot[rate-limiter]>=22.5
