@@ -62,6 +62,9 @@ class TelegramAlerter:
         self._last_stranger_alert: float = 0.0
         self._last_unlock_alert: float = 0.0
 
+        # Mute support — monotonic timestamp until which alerts are suppressed
+        self._muted_until: float = 0.0
+
         # Single asyncio.Lock guards timestamp reads and updates only
         # (released BEFORE any HTTP I/O — see _send_photo call sites)
         self._lock = asyncio.Lock()
@@ -86,6 +89,21 @@ class TelegramAlerter:
                 f"Telegram chat validation failed (alerts disabled): {exc}"
             )
 
+    @property
+    def is_muted(self) -> bool:
+        """True if alerts are currently muted."""
+        return time.monotonic() < self._muted_until
+
+    def mute(self, minutes: int = 30) -> None:
+        """Suppress all alerts for the given number of minutes."""
+        self._muted_until = time.monotonic() + minutes * 60
+        logger.info("Alerts muted for %d minutes", minutes)
+
+    def unmute(self) -> None:
+        """Cancel any active mute immediately."""
+        self._muted_until = 0.0
+        logger.info("Alerts unmuted")
+
     async def shutdown(self) -> None:
         """Close the HTTPX connection pool cleanly."""
         await self._bot.shutdown()
@@ -97,12 +115,15 @@ class TelegramAlerter:
         Send a stranger-detected alert with photo and caption.
 
         Suppressed silently if called within COALESCE_SECONDS of the
-        previous stranger alert.
+        previous stranger alert, or if alerts are muted.
 
         Args:
             thumbnail_path: Absolute path to a JPEG thumbnail, or None.
             caption: Human-readable alert caption.
         """
+        if self.is_muted:
+            logger.debug("Stranger alert suppressed (muted)")
+            return
         async with self._lock:
             now = time.monotonic()
             if now - self._last_stranger_alert < COALESCE_SECONDS:
@@ -121,12 +142,15 @@ class TelegramAlerter:
         Send an unlock-confirmed alert with photo and caption.
 
         Suppressed silently if called within COALESCE_SECONDS of the
-        previous unlock alert.
+        previous unlock alert, or if alerts are muted.
 
         Args:
             thumbnail_path: Absolute path to a JPEG thumbnail, or None.
             caption: Human-readable alert caption.
         """
+        if self.is_muted:
+            logger.debug("Unlock alert suppressed (muted)")
+            return
         async with self._lock:
             now = time.monotonic()
             if now - self._last_unlock_alert < COALESCE_SECONDS:

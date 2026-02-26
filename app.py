@@ -25,6 +25,7 @@ from switchbot_client import SwitchBotClient
 from object_detector import ObjectDetector
 from event_store import EventStore
 from telegram_alerter import TelegramAlerter
+from telegram_commands import TelegramCommandHandler
 from main import polling_loop
 from dashboard.router import router as dashboard_router
 
@@ -107,10 +108,24 @@ async def lifespan(app: FastAPI):
         polling_loop(ring, recognizer, switchbot, detector, store, alerter)
     )
 
-    # Expose store, alerter, and switchbot on app.state for Phase 5 dashboard routes
+    # --- Start Telegram command handler (if alerter is available) ---
+    command_task = None
+    if alerter is not None:
+        logger.info("Starting Telegram command handler...")
+        command_handler = TelegramCommandHandler(
+            alerter=alerter,
+            switchbot=switchbot,
+            store=store,
+            ring=ring,
+            chat_id=Config.TELEGRAM_CHAT_ID,
+        )
+        command_task = asyncio.create_task(command_handler.run())
+
+    # Expose services on app.state for Phase 5 dashboard routes
     app.state.store = store
     app.state.alerter = alerter
     app.state.switchbot = switchbot
+    app.state.ring = ring
 
     yield
 
@@ -122,6 +137,13 @@ async def lifespan(app: FastAPI):
         await polling_task
     except asyncio.CancelledError:
         pass
+
+    if command_task is not None:
+        command_task.cancel()
+        try:
+            await command_task
+        except asyncio.CancelledError:
+            pass
 
     if alerter is not None:
         await alerter.shutdown()
