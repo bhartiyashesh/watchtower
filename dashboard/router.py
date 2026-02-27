@@ -31,6 +31,7 @@ from starlette.background import BackgroundTask
 from PIL import Image, ImageDraw, ImageFont
 
 from config import Config
+from _paths import BUNDLE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ def verify_credentials(credentials: Annotated[HTTPBasicCredentials, Depends(secu
 # ---------------------------------------------------------------------------
 router = APIRouter(prefix="/dashboard", dependencies=[Depends(verify_credentials)])
 
-templates = Jinja2Templates(directory="dashboard/templates")
+templates = Jinja2Templates(directory=str(BUNDLE_DIR / "dashboard" / "templates"))
 
 # Add basename filter so templates can use {{ event.thumbnail_path | basename }}
 # EventStore.save_thumbnail() returns paths like "thumbnails/2026-02-25T10-30-00.jpg"
@@ -663,11 +664,11 @@ _ALLOWED_ASSETS = {
 
 @router.get("/assets/{filename}")
 async def serve_asset(filename: str) -> FileResponse:
-    """Serve whitelisted static assets from the project root."""
+    """Serve whitelisted static assets from the bundle directory."""
     if filename not in _ALLOWED_ASSETS:
         raise HTTPException(status_code=404, detail="Asset not found")
 
-    path = Path(_ALLOWED_ASSETS[filename])
+    path = BUNDLE_DIR / _ALLOWED_ASSETS[filename]
     if not path.exists():
         raise HTTPException(status_code=404, detail="Asset not found")
 

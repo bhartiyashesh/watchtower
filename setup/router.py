@@ -21,11 +21,12 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from setup.env_writer import read_env, write_env, is_setup_complete, mark_setup_complete
+from _paths import BUNDLE_DIR, RUNTIME_DIR
 
 logger = logging.getLogger("smart-lock.setup")
 
 router = APIRouter(prefix="/setup")
-templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+templates = Jinja2Templates(directory=str(BUNDLE_DIR / "setup" / "templates"))
 
 SWITCHBOT_API_BASE = "https://api.switch-bot.com/v1.1"
 
@@ -384,8 +385,8 @@ async def post_step_7(request: Request):
         })
 
     # Write .env and mark setup complete
-    write_env(".env", env_updates)
-    mark_setup_complete(".")
+    write_env(str(RUNTIME_DIR / ".env"), env_updates)
+    mark_setup_complete(str(RUNTIME_DIR))
 
     logger.info("Setup complete — restarting application...")
 

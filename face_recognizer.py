@@ -110,7 +110,8 @@ class FaceRecognizer:
             return None
 
         # Save the frame for debugging
-        debug_dir = Path("debug_frames")
+        from _paths import RUNTIME_DIR
+        debug_dir = RUNTIME_DIR / "debug_frames"
         debug_dir.mkdir(exist_ok=True)
         import time as _time
         debug_path = debug_dir / f"frame_{int(_time.time())}.jpg"

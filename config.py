@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv()
+from _paths import BUNDLE_DIR, RUNTIME_DIR
+
+load_dotenv(RUNTIME_DIR / ".env")
 
 
 class Config:
@@ -17,18 +19,18 @@ class Config:
 
     # Face Recognition
     FACE_MATCH_TOLERANCE: float = float(os.getenv("FACE_MATCH_TOLERANCE", "0.5"))
-    KNOWN_FACES_DIR: Path = Path(os.getenv("KNOWN_FACES_DIR", "./known_faces"))
+    KNOWN_FACES_DIR: Path = Path(os.getenv("KNOWN_FACES_DIR", str(RUNTIME_DIR / "known_faces")))
 
     # Timing
     POLL_INTERVAL: int = int(os.getenv("POLL_INTERVAL", "5"))
     UNLOCK_COOLDOWN: int = int(os.getenv("UNLOCK_COOLDOWN", "60"))
 
     # Storage
-    DB_PATH: str = os.getenv("DB_PATH", "./events.db")
-    THUMBNAILS_DIR: str = os.getenv("THUMBNAILS_DIR", "./thumbnails")
+    DB_PATH: str = os.getenv("DB_PATH", str(RUNTIME_DIR / "events.db"))
+    THUMBNAILS_DIR: str = os.getenv("THUMBNAILS_DIR", str(RUNTIME_DIR / "thumbnails"))
 
     # YOLO Object Detection
-    YOLO_MODEL_PATH: str = os.getenv("YOLO_MODEL_PATH", "yolo11n.pt")
+    YOLO_MODEL_PATH: str = os.getenv("YOLO_MODEL_PATH", str(BUNDLE_DIR / "yolo11n.pt"))
 
     # Pipeline (Phase 3)
     CAMERA_ID: str = os.getenv("CAMERA_ID", "front_door")
@@ -79,19 +81,19 @@ class Config:
     @classmethod
     def reload(cls):
         """Re-read .env and reassign all class variables."""
-        load_dotenv(override=True)
+        load_dotenv(RUNTIME_DIR / ".env", override=True)
         cls.RING_USERNAME = os.getenv("RING_USERNAME", "")
         cls.RING_PASSWORD = os.getenv("RING_PASSWORD", "")
         cls.SWITCHBOT_TOKEN = os.getenv("SWITCHBOT_TOKEN", "")
         cls.SWITCHBOT_SECRET = os.getenv("SWITCHBOT_SECRET", "")
         cls.SWITCHBOT_DEVICE_ID = os.getenv("SWITCHBOT_DEVICE_ID", "")
         cls.FACE_MATCH_TOLERANCE = float(os.getenv("FACE_MATCH_TOLERANCE", "0.5"))
-        cls.KNOWN_FACES_DIR = Path(os.getenv("KNOWN_FACES_DIR", "./known_faces"))
+        cls.KNOWN_FACES_DIR = Path(os.getenv("KNOWN_FACES_DIR", str(RUNTIME_DIR / "known_faces")))
         cls.POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "5"))
         cls.UNLOCK_COOLDOWN = int(os.getenv("UNLOCK_COOLDOWN", "60"))
-        cls.DB_PATH = os.getenv("DB_PATH", "./events.db")
-        cls.THUMBNAILS_DIR = os.getenv("THUMBNAILS_DIR", "./thumbnails")
-        cls.YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH", "yolo11n.pt")
+        cls.DB_PATH = os.getenv("DB_PATH", str(RUNTIME_DIR / "events.db"))
+        cls.THUMBNAILS_DIR = os.getenv("THUMBNAILS_DIR", str(RUNTIME_DIR / "thumbnails"))
+        cls.YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH", str(BUNDLE_DIR / "yolo11n.pt"))
         cls.CAMERA_ID = os.getenv("CAMERA_ID", "front_door")
         cls.FASTAPI_HOST = os.getenv("FASTAPI_HOST", "127.0.0.1")
         cls.FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", "8000"))

@@ -10,10 +10,12 @@ import stat
 import tempfile
 from pathlib import Path
 
+from _paths import RUNTIME_DIR
+
 SENTINEL_FILE = ".setup_complete"
 
 
-def read_env(path: str = ".env") -> dict[str, str]:
+def read_env(path: str = str(RUNTIME_DIR / ".env")) -> dict[str, str]:
     """Parse an existing .env file into a dict. Returns empty dict if missing."""
     env = {}
     p = Path(path)
@@ -35,7 +37,7 @@ def read_env(path: str = ".env") -> dict[str, str]:
     return env
 
 
-def write_env(path: str = ".env", updates: dict[str, str] | None = None) -> None:
+def write_env(path: str = str(RUNTIME_DIR / ".env"), updates: dict[str, str] | None = None) -> None:
     """Merge updates into .env using atomic write, then chmod 600.
 
     Preserves existing keys not in updates. Comments and blank lines from
@@ -88,7 +90,7 @@ def write_env(path: str = ".env", updates: dict[str, str] | None = None) -> None
         pass  # Windows doesn't support chmod 600
 
 
-def is_setup_complete(base_dir: str = ".") -> bool:
+def is_setup_complete(base_dir: str = str(RUNTIME_DIR)) -> bool:
     """Check if setup has been completed (sentinel file exists + basic config valid)."""
     sentinel = Path(base_dir) / SENTINEL_FILE
     if not sentinel.exists():
@@ -100,7 +102,7 @@ def is_setup_complete(base_dir: str = ".") -> bool:
     return all(env.get(k) for k in required)
 
 
-def mark_setup_complete(base_dir: str = ".") -> None:
+def mark_setup_complete(base_dir: str = str(RUNTIME_DIR)) -> None:
     """Create the sentinel file marking setup as done."""
     sentinel = Path(base_dir) / SENTINEL_FILE
     sentinel.write_text("Setup completed.\n")

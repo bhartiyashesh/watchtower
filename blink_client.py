@@ -6,9 +6,11 @@ from blinkpy.blinkpy import Blink
 from blinkpy.auth import Auth
 from blinkpy.helpers.util import json_load
 
+from _paths import RUNTIME_DIR
+
 logger = logging.getLogger(__name__)
 
-BLINK_CREDS_CACHE = Path(".blink_creds.cache")
+BLINK_CREDS_CACHE = RUNTIME_DIR / ".blink_creds.cache"
 
 # Import 2FA exception — name varies by blinkpy version
 try:

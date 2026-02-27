@@ -7,10 +7,12 @@ from pathlib import Path
 from ring_doorbell import Auth, Ring
 from ring_doorbell.exceptions import Requires2FAError
 
+from _paths import RUNTIME_DIR
+
 logger = logging.getLogger(__name__)
 
-TOKEN_CACHE = Path(".ring_token.cache")
-FCM_CREDENTIALS_CACHE = Path(".fcm_credentials.cache")
+TOKEN_CACHE = RUNTIME_DIR / ".ring_token.cache"
+FCM_CREDENTIALS_CACHE = RUNTIME_DIR / ".fcm_credentials.cache"
 
 
 class RingClient:

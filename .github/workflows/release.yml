@@ -1,0 +1,106 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            label: macos-arm64
+            archive_cmd: tar -czf watchtower-macos-arm64.tar.gz -C dist watchtower
+            artifact: watchtower-macos-arm64.tar.gz
+          - os: macos-13
+            label: macos-x86_64
+            archive_cmd: tar -czf watchtower-macos-x86_64.tar.gz -C dist watchtower
+            artifact: watchtower-macos-x86_64.tar.gz
+          - os: ubuntu-22.04
+            label: linux-x86_64
+            archive_cmd: tar -czf watchtower-linux-x86_64.tar.gz -C dist watchtower
+            artifact: watchtower-linux-x86_64.tar.gz
+          - os: windows-latest
+            label: windows-x86_64
+            archive_cmd: Compress-Archive -Path dist/watchtower -DestinationPath watchtower-windows-x86_64.zip
+            artifact: watchtower-windows-x86_64.zip
+
+    runs-on: ${{ matrix.os }}
+    name: Build (${{ matrix.label }})
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Install system dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System' -y
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller>=6.0
+
+      - name: Download YOLO model
+        run: python -c "from ultralytics import YOLO; YOLO('yolo11n.pt')"
+
+      - name: Build with PyInstaller
+        run: pyinstaller watchtower.spec
+
+      - name: Create archive (Unix)
+        if: runner.os != 'Windows'
+        run: ${{ matrix.archive_cmd }}
+
+      - name: Create archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ${{ matrix.archive_cmd }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}
+          path: ${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    name: Create Release
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            artifacts/macos-arm64/*
+            artifacts/macos-x86_64/*
+            artifacts/linux-x86_64/*
+            artifacts/windows-x86_64/*

@@ -17,15 +17,22 @@ Usage:
 
 import asyncio
 import logging
+import os
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 
+from _paths import _is_frozen, RUNTIME_DIR
 from config import Config
 from dashboard.router import router as dashboard_router
 from setup.router import router as setup_router
+
+# When running as a frozen executable, change to the runtime directory so any
+# stray relative paths (e.g. from third-party libs) resolve next to the exe.
+if _is_frozen():
+    os.chdir(RUNTIME_DIR)
 
 logging.basicConfig(
     level=logging.INFO,
