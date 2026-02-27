@@ -12,12 +12,15 @@ Dual-mode startup:
 Usage:
     python app.py
     # or
-    uvicorn app:app --host 127.0.0.1 --port 8000
+    uvicorn app:app --host 127.0.0.1 --port 1847
 """
 
 import asyncio
 import logging
 import os
+import socket
+import subprocess
+import sys
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -42,6 +45,76 @@ logging.basicConfig(
 logger = logging.getLogger("smart-lock.app")
 
 
+WATCHTOWER_HOSTNAME = "watchtower.look"
+
+
+def _hostname_resolves() -> bool:
+    """Return True if WATCHTOWER_HOSTNAME resolves to an IP."""
+    try:
+        socket.getaddrinfo(WATCHTOWER_HOSTNAME, None)
+        return True
+    except socket.gaierror:
+        return False
+
+
+def _offer_hosts_setup(port: int) -> None:
+    """If watchtower.look isn't in /etc/hosts, ask the user to add it now."""
+    if _hostname_resolves():
+        return
+
+    print(f"  '{WATCHTOWER_HOSTNAME}' is not in your hosts file.")
+    print(f"  Adding it lets you access WatchTower at http://{WATCHTOWER_HOSTNAME}:{port}")
+    print()
+
+    try:
+        answer = input("  Add it now? (requires sudo password) [Y/n]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return
+
+    if answer in ("", "y", "yes"):
+        script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "setup_hosts.py")
+        if _is_frozen():
+            script = os.path.join(RUNTIME_DIR, "setup_hosts.py")
+        result = subprocess.run(
+            ["sudo", sys.executable, script],
+            stdin=sys.stdin,
+        )
+        if result.returncode == 0:
+            print()
+        else:
+            print("  Failed to update hosts file. You can try manually later:")
+            print(f"  sudo python setup_hosts.py")
+            print()
+    else:
+        print()
+        print("  Skipped. You can add it later with: sudo python setup_hosts.py")
+        print()
+
+
+def _print_banner(host: str, port: int, setup: bool = False) -> None:
+    """Print a startup banner with access URLs."""
+    local_url = f"http://{host}:{port}"
+    friendly_url = f"http://{WATCHTOWER_HOSTNAME}:{port}"
+    has_hostname = _hostname_resolves()
+    path = "/setup/" if setup else "/dashboard/"
+
+    print()
+    print("  ╔══════════════════════════════════════════════════╗")
+    print("  ║              WatchTower is running               ║")
+    print("  ╠══════════════════════════════════════════════════╣")
+    print(f"  ║  Local:    {(local_url + path):<39s}║")
+    if has_hostname:
+        print(f"  ║  Network:  {(friendly_url + path):<39s}║")
+    print("  ╠══════════════════════════════════════════════════╣")
+    if setup:
+        print("  ║  Complete setup to start monitoring.             ║")
+    else:
+        print("  ║  Dashboard is live. Happy monitoring!            ║")
+    print("  ╚══════════════════════════════════════════════════╝")
+    print()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -54,10 +127,15 @@ async def lifespan(app: FastAPI):
     the Ring polling loop as an asyncio.Task. On shutdown, cancels the polling
     task and cleanly closes all resources.
     """
+    host = Config.FASTAPI_HOST
+    port = Config.FASTAPI_PORT
+
+    _offer_hosts_setup(port)
+
     if not Config.is_configured():
         # --- SETUP MODE ---
         logger.info("Configuration incomplete — starting in setup mode.")
-        logger.info("Open http://127.0.0.1:8000/setup/ to configure WatchTower.")
+        _print_banner(host, port, setup=True)
         app.state.setup_mode = True
         yield
         return
@@ -169,6 +247,8 @@ async def lifespan(app: FastAPI):
     app.state.ring = ring
     app.state.recognizer = recognizer
     app.state.blink = blink
+
+    _print_banner(host, port)
 
     yield
 

@@ -23,6 +23,7 @@ a = Analysis(
         ("setup/templates", "setup/templates"),
         ("yolo11n.pt", "."),
         ("transparent_drawing.png", "."),
+        ("setup_hosts.py", "."),
     ],
     hiddenimports=[
         "uvicorn.logging",

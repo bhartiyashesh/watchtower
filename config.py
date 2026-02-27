@@ -35,7 +35,7 @@ class Config:
     # Pipeline (Phase 3)
     CAMERA_ID: str = os.getenv("CAMERA_ID", "front_door")
     FASTAPI_HOST: str = os.getenv("FASTAPI_HOST", "127.0.0.1")
-    FASTAPI_PORT: int = int(os.getenv("FASTAPI_PORT", "8000"))
+    FASTAPI_PORT: int = int(os.getenv("FASTAPI_PORT", "1847"))
 
     # Telegram Alerts (Phase 4)
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -96,7 +96,7 @@ class Config:
         cls.YOLO_MODEL_PATH = os.getenv("YOLO_MODEL_PATH", str(BUNDLE_DIR / "yolo11n.pt"))
         cls.CAMERA_ID = os.getenv("CAMERA_ID", "front_door")
         cls.FASTAPI_HOST = os.getenv("FASTAPI_HOST", "127.0.0.1")
-        cls.FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", "8000"))
+        cls.FASTAPI_PORT = int(os.getenv("FASTAPI_PORT", "1847"))
         cls.TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
         cls.TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
         cls.DASHBOARD_USERNAME = os.getenv("DASHBOARD_USERNAME", "admin")
