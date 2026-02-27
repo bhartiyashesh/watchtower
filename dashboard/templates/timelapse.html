@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Timelapse — WatchTower{% endblock %}
+
+{% block content %}
+<h1>Timelapse Generator</h1>
+
+<div class="card">
+    <div class="timelapse-controls">
+        <div class="control-row">
+            <label for="date-picker">Date</label>
+            <input type="date" id="date-picker" />
+
+            <label for="fps-select">Speed</label>
+            <select id="fps-select">
+                <option value="1">1 fps</option>
+                <option value="2" selected>2 fps</option>
+                <option value="3">3 fps</option>
+                <option value="5">5 fps</option>
+            </select>
+
+            <button id="generate-btn" disabled>Generate</button>
+        </div>
+
+        <div id="event-count" class="event-count"></div>
+    </div>
+</div>
+
+<div id="spinner" class="spinner-wrap" style="display:none;">
+    <div class="spinner"></div>
+    <p>Generating timelapse&hellip;</p>
+</div>
+
+<div id="error-msg" class="empty-state" style="display:none;"></div>
+
+<div id="player-wrap" class="card" style="display:none;">
+    <video id="player" controls></video>
+    <div class="player-actions">
+        <a id="download-link" class="link-btn" download>Download MP4</a>
+    </div>
+</div>
+
+<style>
+    .timelapse-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .control-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .control-row label {
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+    }
+
+    .control-row input[type="date"],
+    .control-row select {
+        padding: 0.4rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        font-size: 0.9rem;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .control-row input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.8);
+    }
+
+    .control-row button {
+        padding: 0.4rem 1.25rem;
+        background: var(--accent-blue);
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .control-row button:hover:not(:disabled) {
+        background: #5599ff;
+    }
+
+    .control-row button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+
+    .event-count {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        min-height: 1.4em;
+    }
+
+    .event-count.has-events {
+        color: var(--accent-green);
+    }
+
+    .spinner-wrap {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: var(--text-secondary);
+    }
+
+    .spinner {
+        width: 36px;
+        height: 36px;
+        border: 3px solid var(--border-color);
+        border-top-color: var(--accent-blue);
+        border-radius: 50%;
+        margin: 0 auto 0.75rem;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    #player {
+        width: 100%;
+        border-radius: 8px;
+        background: #000;
+    }
+
+    .player-actions {
+        margin-top: 0.75rem;
+        display: flex;
+        gap: 0.75rem;
+    }
+</style>
+
+<script>
+(function() {
+    const datePicker = document.getElementById('date-picker');
+    const fpsSelect  = document.getElementById('fps-select');
+    const generateBtn = document.getElementById('generate-btn');
+    const eventCount = document.getElementById('event-count');
+    const spinner    = document.getElementById('spinner');
+    const errorMsg   = document.getElementById('error-msg');
+    const playerWrap = document.getElementById('player-wrap');
+    const player     = document.getElementById('player');
+    const downloadLink = document.getElementById('download-link');
+
+    // Default to today
+    const today = new Date().toISOString().slice(0, 10);
+    datePicker.value = today;
+
+    // Fetch count on load + date change
+    datePicker.addEventListener('change', fetchCount);
+    fetchCount();
+
+    async function fetchCount() {
+        const date = datePicker.value;
+        if (!date) {
+            eventCount.textContent = '';
+            generateBtn.disabled = true;
+            return;
+        }
+
+        try {
+            const resp = await fetch('/dashboard/api/timelapse-info?date=' + encodeURIComponent(date));
+            const data = await resp.json();
+            if (data.count > 0) {
+                eventCount.textContent = data.count + ' events available';
+                eventCount.className = 'event-count has-events';
+                generateBtn.disabled = false;
+            } else {
+                eventCount.textContent = 'No events for this date';
+                eventCount.className = 'event-count';
+                generateBtn.disabled = true;
+            }
+        } catch (e) {
+            eventCount.textContent = 'Failed to check events';
+            eventCount.className = 'event-count';
+            generateBtn.disabled = true;
+        }
+    }
+
+    generateBtn.addEventListener('click', async function() {
+        const date = datePicker.value;
+        const fps  = fpsSelect.value;
+        if (!date) return;
+
+        // Show spinner, hide previous results
+        spinner.style.display = '';
+        errorMsg.style.display = 'none';
+        playerWrap.style.display = 'none';
+        generateBtn.disabled = true;
+
+        // Revoke previous blob URL
+        if (player.src && player.src.startsWith('blob:')) {
+            URL.revokeObjectURL(player.src);
+        }
+
+        try {
+            const url = '/dashboard/api/timelapse?date=' + encodeURIComponent(date) + '&fps=' + fps;
+            const resp = await fetch(url);
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => ({ detail: 'Generation failed' }));
+                throw new Error(err.detail || 'Generation failed');
+            }
+
+            const blob = await resp.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            player.src = blobUrl;
+            downloadLink.href = blobUrl;
+            downloadLink.download = 'timelapse-' + date + '.mp4';
+
+            playerWrap.style.display = '';
+        } catch (e) {
+            errorMsg.textContent = e.message;
+            errorMsg.style.display = '';
+        } finally {
+            spinner.style.display = 'none';
+            generateBtn.disabled = false;
+        }
+    });
+})();
+</script>
+{% endblock %}

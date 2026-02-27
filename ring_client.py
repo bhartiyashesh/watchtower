@@ -127,10 +127,44 @@ class RingClient:
         logger.error("All recording download attempts failed")
         return None
 
+    def get_battery_level(self) -> int | None:
+        """Return the doorbell's battery percentage, or None if unavailable."""
+        try:
+            return self.doorbell.battery_life
+        except Exception:
+            return None
+
     async def stop(self) -> None:
         """Stop the event listener if running."""
         if self._listener:
             await self._listener.stop()
+
+    @staticmethod
+    async def test_credentials(username: str, password: str) -> str:
+        """Test Ring credentials. Returns '2fa_required' or 'success'.
+
+        Raises an exception if the credentials are wrong.
+        """
+        auth = Auth("WatchTower/1.0", None, lambda t: None)
+        try:
+            await auth.async_fetch_token(username, password)
+            return "success"
+        except Requires2FAError:
+            return "2fa_required"
+
+    @staticmethod
+    async def complete_2fa(username: str, password: str, otp_code: str) -> None:
+        """Complete 2FA verification. Writes token cache on success.
+
+        Ring's async_fetch_token is stateless — a fresh Auth instance
+        with the OTP code works without preserving the original Auth object.
+        """
+        auth = Auth(
+            "WatchTower/1.0",
+            None,
+            lambda t: TOKEN_CACHE.write_text(json.dumps(t)),
+        )
+        await auth.async_fetch_token(username, password, otp_code=otp_code)
 
     @staticmethod
     def _extract_frame(video_bytes: bytes) -> bytes | None:

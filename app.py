@@ -5,6 +5,10 @@ Replaces the standalone asyncio.run + main() pattern with a proper FastAPI
 application. The lifespan context manager initializes all services and starts
 the Ring polling loop as an asyncio.Task, so uvicorn owns the event loop.
 
+Dual-mode startup:
+  - SETUP MODE: If config is incomplete, only the setup wizard is served.
+  - OPERATIONAL MODE: Full service initialization + polling loop.
+
 Usage:
     python app.py
     # or
@@ -16,18 +20,12 @@ import logging
 from contextlib import asynccontextmanager
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 
 from config import Config
-from ring_client import RingClient
-from face_recognizer import FaceRecognizer
-from switchbot_client import SwitchBotClient
-from object_detector import ObjectDetector
-from event_store import EventStore
-from telegram_alerter import TelegramAlerter
-from telegram_commands import TelegramCommandHandler
-from main import polling_loop
 from dashboard.router import router as dashboard_router
+from setup.router import router as setup_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -42,16 +40,32 @@ async def lifespan(app: FastAPI):
     """
     FastAPI lifespan context manager.
 
-    Validates config, initializes all services, and starts the Ring polling
-    loop as an asyncio.Task. On shutdown, cancels the polling task and cleanly
-    closes all resources.
+    In SETUP MODE (config incomplete): no services are initialized — only the
+    setup wizard routes are active.
+
+    In OPERATIONAL MODE: validates config, initializes all services, and starts
+    the Ring polling loop as an asyncio.Task. On shutdown, cancels the polling
+    task and cleanly closes all resources.
     """
-    # --- Validate config ---
-    errors = Config.validate()
-    if errors:
-        for e in errors:
-            logger.error(e)
-        raise RuntimeError(f"Configuration invalid: {errors}")
+    if not Config.is_configured():
+        # --- SETUP MODE ---
+        logger.info("Configuration incomplete — starting in setup mode.")
+        logger.info("Open http://127.0.0.1:8000/setup/ to configure WatchTower.")
+        app.state.setup_mode = True
+        yield
+        return
+
+    # --- OPERATIONAL MODE ---
+    app.state.setup_mode = False
+
+    from ring_client import RingClient
+    from face_recognizer import FaceRecognizer
+    from switchbot_client import SwitchBotClient
+    from object_detector import ObjectDetector
+    from event_store import EventStore
+    from telegram_alerter import TelegramAlerter
+    from telegram_commands import TelegramCommandHandler
+    from main import polling_loop
 
     # --- Initialize EventStore ---
     logger.info("Initializing EventStore...")
@@ -121,11 +135,12 @@ async def lifespan(app: FastAPI):
         )
         command_task = asyncio.create_task(command_handler.run())
 
-    # Expose services on app.state for Phase 5 dashboard routes
+    # Expose services on app.state for dashboard routes
     app.state.store = store
     app.state.alerter = alerter
     app.state.switchbot = switchbot
     app.state.ring = ring
+    app.state.recognizer = recognizer
 
     yield
 
@@ -156,7 +171,18 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="Smart Lock System")
+app.include_router(setup_router)
 app.include_router(dashboard_router)
+
+
+@app.middleware("http")
+async def setup_mode_guard(request: Request, call_next):
+    """In setup mode, redirect all non-setup/non-health routes to the wizard."""
+    if getattr(request.app.state, "setup_mode", False):
+        path = request.url.path
+        if not path.startswith("/setup") and path != "/health":
+            return RedirectResponse("/setup/", status_code=303)
+    return await call_next(request)
 
 
 @app.get("/health")

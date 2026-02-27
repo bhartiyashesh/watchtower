@@ -15,6 +15,7 @@ Schema overview:
 import asyncio
 import io
 import logging
+import os
 from pathlib import Path
 
 import aiosqlite
@@ -74,7 +75,7 @@ class EventStore:
                 door_action    TEXT    DEFAULT 'none',
                 thumbnail_path TEXT,
                 alert_sent     INTEGER NOT NULL DEFAULT 0,
-                created_at     TEXT    NOT NULL DEFAULT (datetime('now'))
+                created_at     TEXT    NOT NULL DEFAULT (datetime('now', '-6 hours'))
             )
         """)
 
@@ -96,9 +97,19 @@ class EventStore:
                 id           INTEGER PRIMARY KEY AUTOINCREMENT,
                 name         TEXT    NOT NULL UNIQUE,
                 display_name TEXT,
-                created_at   TEXT    NOT NULL DEFAULT (datetime('now'))
+                created_at   TEXT    NOT NULL DEFAULT (datetime('now', '-6 hours'))
             )
         """)
+
+        # Idempotent migration: add auto_unlock column to persons table
+        try:
+            await self.db.execute(
+                "ALTER TABLE persons ADD COLUMN auto_unlock INTEGER NOT NULL DEFAULT 1"
+            )
+            await self.db.commit()
+            logger.info("Added auto_unlock column to persons table")
+        except Exception:
+            pass  # Column already exists
 
         # Create indexes for common query patterns
         await self.db.execute(
@@ -294,7 +305,7 @@ class EventStore:
     async def get_today_event_count(self) -> int:
         """Count events recorded today (UTC calendar day)."""
         async with self.db.execute(
-            "SELECT COUNT(*) FROM events WHERE DATE(recorded_at) = DATE('now')"
+            "SELECT COUNT(*) FROM events WHERE DATE(recorded_at) = DATE('now', '-6 hours')"
         ) as cursor:
             row = await cursor.fetchone()
         return row[0] if row else 0
@@ -328,11 +339,11 @@ class EventStore:
 
         # Date range filter — literal SQL fragments only
         if date_range == "today":
-            where_fragments.append("DATE(recorded_at) = DATE('now')")
+            where_fragments.append("DATE(recorded_at) = DATE('now', '-6 hours')")
         elif date_range == "7d":
-            where_fragments.append("recorded_at >= datetime('now', '-7 days')")
+            where_fragments.append("recorded_at >= datetime('now', '-6 hours', '-7 days')")
         elif date_range == "30d":
-            where_fragments.append("recorded_at >= datetime('now', '-30 days')")
+            where_fragments.append("recorded_at >= datetime('now', '-6 hours', '-30 days')")
         # "all" adds no filter
 
         # Object type filter — object_type value is parameterized (never interpolated)
@@ -364,6 +375,215 @@ class EventStore:
             events.append(event)
 
         return events
+
+    # ------------------------------------------------------------------
+    # Analytics aggregate queries
+    # ------------------------------------------------------------------
+
+    async def get_hourly_heatmap(self, days: int = 30) -> list[dict]:
+        """Activity heatmap data: event count per (day_of_week, hour) bucket."""
+        async with self.db.execute(
+            """
+            SELECT CAST(strftime('%w', recorded_at) AS INTEGER) AS day_of_week,
+                   CAST(strftime('%H', recorded_at) AS INTEGER) AS hour,
+                   COUNT(*) AS count
+            FROM events
+            WHERE recorded_at >= datetime('now', '-6 hours', ?)
+            GROUP BY day_of_week, hour
+            ORDER BY day_of_week, hour
+            """,
+            (f"-{days} days",),
+        ) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+    async def get_detection_breakdown(self, days: int = 30) -> list[dict]:
+        """Detection label breakdown with counts and average confidence."""
+        async with self.db.execute(
+            """
+            SELECT d.label,
+                   COUNT(*) AS count,
+                   ROUND(AVG(d.confidence), 3) AS avg_confidence
+            FROM detections d
+            JOIN events e ON e.id = d.event_id
+            WHERE e.recorded_at >= datetime('now', '-6 hours', ?)
+            GROUP BY d.label
+            ORDER BY count DESC
+            """,
+            (f"-{days} days",),
+        ) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+    async def get_daily_timeline(self, days: int = 30) -> list[dict]:
+        """Per-day event counts with stranger / known / unlock breakdowns."""
+        async with self.db.execute(
+            """
+            SELECT DATE(recorded_at) AS date,
+                   COUNT(*) AS count,
+                   SUM(CASE WHEN person_name IS NULL AND event_type = 'motion' THEN 1 ELSE 0 END) AS strangers,
+                   SUM(CASE WHEN person_name IS NOT NULL THEN 1 ELSE 0 END) AS known,
+                   SUM(CASE WHEN unlock_granted = 1 THEN 1 ELSE 0 END) AS unlocks
+            FROM events
+            WHERE recorded_at >= datetime('now', '-6 hours', ?)
+            GROUP BY date
+            ORDER BY date
+            """,
+            (f"-{days} days",),
+        ) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+    async def get_analytics_stats(self) -> dict:
+        """High-level aggregate stats across all events."""
+        async with self.db.execute(
+            """
+            SELECT COUNT(*) AS total_events,
+                   SUM(CASE WHEN DATE(recorded_at) = DATE('now', '-6 hours') THEN 1 ELSE 0 END) AS today_count,
+                   SUM(CASE WHEN person_name IS NULL AND event_type = 'motion' THEN 1 ELSE 0 END) AS total_strangers,
+                   SUM(CASE WHEN unlock_granted = 1 THEN 1 ELSE 0 END) AS total_unlocks,
+                   SUM(CASE WHEN person_name IS NOT NULL THEN 1 ELSE 0 END) AS total_known
+            FROM events
+            """
+        ) as cursor:
+            row = await cursor.fetchone()
+        return dict(row) if row else {
+            "total_events": 0, "today_count": 0,
+            "total_strangers": 0, "total_unlocks": 0, "total_known": 0,
+        }
+
+    async def get_peak_hours(self, days: int = 30) -> list[dict]:
+        """Event count per hour-of-day with average per day."""
+        async with self.db.execute(
+            """
+            SELECT CAST(strftime('%H', recorded_at) AS INTEGER) AS hour,
+                   COUNT(*) AS count,
+                   ROUND(COUNT(*) * 1.0 / MAX(1, JULIANDAY('now', '-6 hours') - JULIANDAY(datetime('now', '-6 hours', ?))), 2) AS avg_per_day
+            FROM events
+            WHERE recorded_at >= datetime('now', '-6 hours', ?)
+            GROUP BY hour
+            ORDER BY hour
+            """,
+            (f"-{days} days", f"-{days} days"),
+        ) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+    async def get_recent_events_for_orb(self, limit: int = 50) -> list[dict]:
+        """Recent events with their primary (highest-confidence) detection label."""
+        async with self.db.execute(
+            """
+            SELECT e.id, e.recorded_at, e.event_type, e.person_name, e.unlock_granted,
+                   (SELECT d.label FROM detections d
+                    WHERE d.event_id = e.id
+                    ORDER BY d.confidence DESC LIMIT 1) AS primary_label
+            FROM events e
+            ORDER BY e.recorded_at DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+    async def get_events_for_timelapse(self, date: str) -> list[dict]:
+        """Return events with thumbnails for a given date, ordered chronologically."""
+        async with self.db.execute(
+            """
+            SELECT id, recorded_at, person_name, thumbnail_path
+            FROM events
+            WHERE DATE(recorded_at) = ? AND thumbnail_path IS NOT NULL
+            ORDER BY recorded_at ASC
+            """,
+            (date,),
+        ) as cursor:
+            return [dict(r) for r in await cursor.fetchall()]
+
+    # ------------------------------------------------------------------
+    # Person management (face enrollment / auto-unlock)
+    # ------------------------------------------------------------------
+
+    async def get_persons(self, known_faces_dir: Path | None = None) -> list[dict]:
+        """List all persons with face image count from the known_faces directory."""
+        async with self.db.execute(
+            "SELECT id, name, display_name, auto_unlock, created_at FROM persons ORDER BY name"
+        ) as cursor:
+            rows = await cursor.fetchall()
+
+        persons = []
+        for row in rows:
+            p = dict(row)
+            # Count face images on disk
+            if known_faces_dir and known_faces_dir.exists():
+                p["face_count"] = len(list(known_faces_dir.glob(f"{p['name']}_*")))
+            else:
+                p["face_count"] = 0
+            persons.append(p)
+        return persons
+
+    async def add_person(self, name: str, display_name: str | None = None, auto_unlock: bool = True) -> None:
+        """Insert a person into the persons table (upsert — ignores if exists)."""
+        await self.db.execute(
+            """
+            INSERT INTO persons (name, display_name, auto_unlock)
+            VALUES (?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                display_name = COALESCE(excluded.display_name, persons.display_name)
+            """,
+            (name, display_name or name.replace("_", " ").title(), 1 if auto_unlock else 0),
+        )
+        await self.db.commit()
+
+    async def delete_person(self, name: str, known_faces_dir: Path | None = None) -> bool:
+        """Delete a person from the DB and remove their face images from disk."""
+        cursor = await self.db.execute("DELETE FROM persons WHERE name = ?", (name,))
+        await self.db.commit()
+
+        if known_faces_dir and known_faces_dir.exists():
+            for img in known_faces_dir.glob(f"{name}_*"):
+                try:
+                    os.remove(img)
+                except OSError:
+                    logger.warning("Failed to remove face image: %s", img)
+
+        return cursor.rowcount > 0
+
+    async def set_person_auto_unlock(self, name: str, enabled: bool) -> bool:
+        """Update a person's auto_unlock flag. Returns True if the row was updated."""
+        cursor = await self.db.execute(
+            "UPDATE persons SET auto_unlock = ? WHERE name = ?",
+            (1 if enabled else 0, name),
+        )
+        await self.db.commit()
+        return cursor.rowcount > 0
+
+    async def get_auto_unlock_names(self) -> set[str]:
+        """Return the set of person names that have auto_unlock enabled."""
+        async with self.db.execute(
+            "SELECT name FROM persons WHERE auto_unlock = 1"
+        ) as cursor:
+            rows = await cursor.fetchall()
+        return {row[0] for row in rows}
+
+    async def sync_persons_from_disk(self, known_faces_dir: Path) -> int:
+        """Backfill persons table from face images on disk that aren't yet in the DB."""
+        if not known_faces_dir.exists():
+            return 0
+
+        extensions = {".jpg", ".jpeg", ".png", ".bmp"}
+        disk_names: set[str] = set()
+        for img_path in known_faces_dir.iterdir():
+            if img_path.suffix.lower() in extensions:
+                name = img_path.stem.rsplit("_", 1)[0]
+                disk_names.add(name)
+
+        added = 0
+        for name in disk_names:
+            async with self.db.execute(
+                "SELECT 1 FROM persons WHERE name = ?", (name,)
+            ) as cursor:
+                if await cursor.fetchone() is None:
+                    await self.add_person(name)
+                    added += 1
+
+        if added:
+            logger.info("Synced %d person(s) from disk to DB", added)
+        return added
 
     async def close(self) -> None:
         """Close the database connection and release resources."""

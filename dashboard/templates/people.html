@@ -1,0 +1,400 @@
+{% extends "base.html" %}
+
+{% block title %}People - WatchTower{% endblock %}
+
+{% block content %}
+<style>
+    .people-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+    }
+    .people-header h1 { margin-bottom: 0; }
+
+    .add-form {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .add-form h2 { margin-bottom: 0.75rem; }
+    .form-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: flex-end;
+    }
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .form-group input[type="text"] {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        width: 180px;
+    }
+    .form-group input[type="file"] {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+    .form-group input[type="file"]::file-selector-button {
+        padding: 0.4rem 0.8rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-card-hover);
+        color: var(--text-primary);
+        cursor: pointer;
+        font-size: 0.85rem;
+        margin-right: 0.5rem;
+    }
+    .btn {
+        padding: 0.5rem 1.1rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-primary {
+        background: var(--accent-blue);
+        color: #fff;
+    }
+    .btn-primary:hover { background: #5599ff; }
+    .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .btn-danger {
+        background: rgba(255, 68, 68, 0.15);
+        color: #ff6666;
+        border: 1px solid rgba(255, 68, 68, 0.3);
+    }
+    .btn-danger:hover { background: rgba(255, 68, 68, 0.25); }
+    .btn-sm {
+        padding: 0.3rem 0.65rem;
+        font-size: 0.8rem;
+    }
+    .btn-outline {
+        background: transparent;
+        color: var(--accent-blue);
+        border: 1px solid rgba(68, 136, 255, 0.3);
+    }
+    .btn-outline:hover { background: rgba(68, 136, 255, 0.1); }
+
+    .form-message {
+        margin-top: 0.75rem;
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        display: none;
+    }
+    .form-message.error {
+        display: block;
+        background: rgba(255, 68, 68, 0.1);
+        border: 1px solid rgba(255, 68, 68, 0.2);
+        color: #ff6666;
+    }
+    .form-message.success {
+        display: block;
+        background: rgba(68, 204, 136, 0.1);
+        border: 1px solid rgba(68, 204, 136, 0.2);
+        color: var(--accent-green);
+    }
+
+    .people-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+    .person-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        overflow: hidden;
+        transition: border-color 0.15s;
+    }
+    .person-card:hover { border-color: rgba(255, 255, 255, 0.12); }
+
+    .person-photo {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        display: block;
+        background: var(--bg-primary);
+    }
+    .person-info {
+        padding: 1rem 1.25rem;
+    }
+    .person-name {
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin-bottom: 0.25rem;
+    }
+    .person-meta {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+    }
+    .person-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .person-actions-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Toggle switch */
+    .toggle-wrap {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .toggle-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+    .toggle {
+        position: relative;
+        width: 40px;
+        height: 22px;
+        cursor: pointer;
+    }
+    .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+    .toggle-slider {
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 22px;
+        transition: background 0.2s;
+    }
+    .toggle-slider::before {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: transform 0.2s;
+    }
+    .toggle input:checked + .toggle-slider {
+        background: var(--accent-green);
+    }
+    .toggle input:checked + .toggle-slider::before {
+        transform: translateX(18px);
+    }
+
+    /* Upload overlay for adding more photos */
+    .add-photo-label {
+        display: inline-block;
+        cursor: pointer;
+    }
+    .add-photo-label input[type="file"] {
+        display: none;
+    }
+</style>
+
+<div class="people-header">
+    <h1>People</h1>
+</div>
+
+<!-- Add Person Form -->
+<div class="add-form">
+    <h2>Enroll New Face</h2>
+    <form id="enroll-form" enctype="multipart/form-data">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="person-name">Name</label>
+                <input type="text" id="person-name" name="name" placeholder="e.g. John" required>
+            </div>
+            <div class="form-group">
+                <label for="person-photo">Photo</label>
+                <input type="file" id="person-photo" name="photo" accept="image/*" required>
+            </div>
+            <button type="submit" class="btn btn-primary" id="enroll-btn">Add Person</button>
+        </div>
+    </form>
+    <div id="form-message" class="form-message"></div>
+</div>
+
+<!-- People Grid -->
+<div class="people-grid" id="people-grid">
+    {% if persons %}
+        {% for person in persons %}
+        <div class="person-card" data-name="{{ person.name }}">
+            {% set photos = [] %}
+            {% set face_count = person.face_count %}
+            <img class="person-photo"
+                 src="/dashboard/people/photos/{{ person.name }}_1.jpg"
+                 alt="{{ person.display_name or person.name }}"
+                 onerror="this.style.display='none'">
+            <div class="person-info">
+                <div class="person-name">{{ person.display_name or person.name }}</div>
+                <div class="person-meta">
+                    <span class="face-count">{{ face_count }} photo{{ 's' if face_count != 1 else '' }}</span>
+                </div>
+                <div class="person-actions">
+                    <div class="person-actions-left">
+                        <div class="toggle-wrap">
+                            <span class="toggle-label">Auto-unlock</span>
+                            <label class="toggle">
+                                <input type="checkbox"
+                                       {{ 'checked' if person.auto_unlock else '' }}
+                                       onchange="toggleAutoUnlock('{{ person.name }}', this.checked)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <label class="add-photo-label btn btn-sm btn-outline" title="Add another photo">
+                            + Photo
+                            <input type="file" accept="image/*"
+                                   onchange="addPhoto('{{ person.name }}', this.files[0])">
+                        </label>
+                    </div>
+                    <button class="btn btn-sm btn-danger"
+                            onclick="deletePerson('{{ person.name }}', '{{ person.display_name or person.name }}')">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state" id="empty-state" style="grid-column: 1 / -1;">
+            No people enrolled yet. Upload a face photo above to get started.
+        </div>
+    {% endif %}
+</div>
+
+<script>
+const enrollForm = document.getElementById('enroll-form');
+const formMsg = document.getElementById('form-message');
+const enrollBtn = document.getElementById('enroll-btn');
+
+function showMessage(text, type) {
+    formMsg.textContent = text;
+    formMsg.className = 'form-message ' + type;
+    setTimeout(() => { formMsg.className = 'form-message'; }, 5000);
+}
+
+enrollForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = document.getElementById('person-name').value.trim();
+    const photo = document.getElementById('person-photo').files[0];
+    if (!name || !photo) return;
+
+    enrollBtn.disabled = true;
+    enrollBtn.textContent = 'Uploading...';
+
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('photo', photo);
+
+    try {
+        const res = await fetch('/dashboard/api/people', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+            showMessage(data.detail || 'Upload failed', 'error');
+            return;
+        }
+        showMessage(`Added face for ${name}`, 'success');
+        // Reload the page to show updated list
+        setTimeout(() => location.reload(), 800);
+    } catch (err) {
+        showMessage('Network error: ' + err.message, 'error');
+    } finally {
+        enrollBtn.disabled = false;
+        enrollBtn.textContent = 'Add Person';
+    }
+});
+
+async function addPhoto(name, file) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('photo', file);
+
+    try {
+        const res = await fetch('/dashboard/api/people', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+            alert(data.detail || 'Upload failed');
+            return;
+        }
+        // Update the face count on this card
+        const card = document.querySelector(`.person-card[data-name="${name}"]`);
+        if (card && data.person) {
+            const countEl = card.querySelector('.face-count');
+            const n = data.person.face_count;
+            countEl.textContent = n + ' photo' + (n !== 1 ? 's' : '');
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+async function toggleAutoUnlock(name, enabled) {
+    try {
+        const res = await fetch(`/dashboard/api/people/${name}/auto-unlock`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabled }),
+        });
+        if (!res.ok) {
+            const data = await res.json();
+            alert(data.detail || 'Update failed');
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+
+async function deletePerson(name, displayName) {
+    if (!confirm(`Delete ${displayName} and all their face photos?`)) return;
+
+    try {
+        const res = await fetch(`/dashboard/api/people/${name}`, { method: 'DELETE' });
+        if (!res.ok) {
+            const data = await res.json();
+            alert(data.detail || 'Delete failed');
+            return;
+        }
+        // Remove the card from the DOM
+        const card = document.querySelector(`.person-card[data-name="${name}"]`);
+        if (card) card.remove();
+
+        // Show empty state if no cards remain
+        const grid = document.getElementById('people-grid');
+        if (!grid.querySelector('.person-card')) {
+            grid.innerHTML = '<div class="empty-state" style="grid-column: 1 / -1;">No people enrolled yet. Upload a face photo above to get started.</div>';
+        }
+    } catch (err) {
+        alert('Network error: ' + err.message);
+    }
+}
+</script>
+{% endblock %}

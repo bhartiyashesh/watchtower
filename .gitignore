@@ -1,11 +1,20 @@
 .env
 .ring_token.cache
+.setup_complete
 __pycache__/
 *.pyc
 known_faces/*.jpg
 known_faces/*.jpeg
 known_faces/*.png
 venv/
+.venv/
+
+# Runtime data
+events.db
+events.db-shm
+events.db-wal
+debug_frames/
+thumbnails/
 
 # YOLO model weights — downloadable via ultralytics, not committed (~6MB)
 yolo11n.pt

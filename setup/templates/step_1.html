@@ -1,0 +1,47 @@
+{% extends "setup_base.html" %}
+{% block title %}WatchTower Setup — Ring Account{% endblock %}
+
+{% block step_content %}
+<div class="card">
+    <h1>Ring Account</h1>
+    <p class="subtitle">Use your Ring.com login credentials to connect your doorbell.</p>
+
+    <div class="error-box" id="error-box">{{ error or '' }}</div>
+
+    <form method="POST" action="/setup/step/1" id="ring-form">
+        <div class="form-group">
+            <label for="ring_username">Email</label>
+            <input type="email" id="ring_username" name="ring_username"
+                   value="{{ ring_username or '' }}" placeholder="you@example.com" required>
+        </div>
+
+        <div class="form-group">
+            <label for="ring_password">Password</label>
+            <input type="password" id="ring_password" name="ring_password"
+                   value="{{ ring_password or '' }}" placeholder="Your Ring password" required>
+        </div>
+
+        <div class="form-group">
+            <p class="hint">
+                These are the same credentials you use to log in at
+                <a href="https://ring.com" target="_blank" rel="noopener">ring.com</a>.
+            </p>
+        </div>
+
+        <div class="btn-row">
+            <span></span>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                Next &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('ring-form').addEventListener('submit', function() {
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Connecting...';
+});
+</script>
+{% endblock %}

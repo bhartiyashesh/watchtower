@@ -146,20 +146,27 @@ class TelegramCommandHandler:
             await self._reply(chat_id, "Lock failed — check server logs.")
 
     async def _cmd_snap(self, chat_id: int, args: str) -> None:
-        """Capture a live snapshot from Ring and send as photo."""
-        await self._reply(chat_id, "📸 Capturing snapshot...")
+        """Send a frame from the most recent Ring recording."""
+        await self._reply(chat_id, "📸 Fetching latest recording frame...")
         try:
-            snapshot_bytes = await self._ring.doorbell.async_get_snapshot()
-            if snapshot_bytes:
+            history = await self._ring.doorbell.async_history(limit=1)
+            if not history:
+                await self._reply(chat_id, "No recent recordings found.")
+                return
+
+            recording_id = history[0]["id"]
+            frame_bytes = await self._ring.capture_frame(recording_id)
+            if frame_bytes:
                 await self._bot.send_photo(
                     chat_id=chat_id,
-                    photo=io.BytesIO(snapshot_bytes),
-                    caption="Live snapshot from Ring doorbell",
+                    photo=io.BytesIO(frame_bytes),
+                    caption=f"Latest recording frame (ID: {recording_id})",
                 )
                 return
+            logger.warning("capture_frame returned None for recording %s", recording_id)
         except Exception:
-            logger.exception("Snapshot capture failed")
-        await self._reply(chat_id, "Could not capture snapshot.")
+            logger.exception("Snap command failed")
+        await self._reply(chat_id, "Could not fetch recording frame — try again later.")
 
     async def _cmd_events(self, chat_id: int, args: str) -> None:
         """Show last 5 events summary."""

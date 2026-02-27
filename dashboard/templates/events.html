@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Event History - Smart Lock{% endblock %}
+{% block title %}Event History - WatchTower{% endblock %}
 
 {% block content %}
 <h1>Event History</h1>
@@ -42,7 +42,7 @@
                 >
             {% endif %}
             <div class="event-info">
-                <div class="event-meta">{{ event.recorded_at }}</div>
+                <div class="event-meta"><span class="utc-time" data-utc="{{ event.recorded_at }}"></span></div>
                 <div class="event-title">
                     {% if event.person_name %}
                         {{ event.person_name }}
@@ -88,4 +88,17 @@
         </a>
     {% endif %}
 </div>
+
+<script>
+document.querySelectorAll('.utc-time').forEach(el => {
+    const raw = el.dataset.utc;
+    if (!raw) return;
+    const utc = raw.includes('Z') ? raw : raw + 'Z';
+    const dt = new Date(utc);
+    el.textContent = dt.toLocaleString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+    });
+});
+</script>
 {% endblock %}

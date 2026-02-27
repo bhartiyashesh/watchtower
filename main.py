@@ -15,6 +15,7 @@ import asyncio
 import datetime
 import logging
 import time
+import zoneinfo
 
 from config import Config
 from object_detector import ObjectDetector, crop_person_bbox, detections_to_dicts
@@ -69,7 +70,7 @@ async def polling_loop(ring, recognizer, switchbot, detector: ObjectDetector, st
                 continue
 
             recording_id, event_kind = result
-            recorded_at = datetime.datetime.utcnow().isoformat()
+            recorded_at = datetime.datetime.now(zoneinfo.ZoneInfo("America/Chicago")).isoformat()
 
             logger.info(
                 f"Processing event (recording_id={recording_id}, kind={event_kind})"
@@ -139,11 +140,25 @@ async def polling_loop(ring, recognizer, switchbot, detector: ObjectDetector, st
             door_action = "none"
 
             if matched_name is not None:
-                logger.info(f"Authorized person detected: {matched_name}")
+                logger.info(f"Recognized person: {matched_name}")
 
-                # Check cooldown before dispatching unlock
-                elapsed = time.time() - last_unlock_time
-                if elapsed >= Config.UNLOCK_COOLDOWN:
+                # Check per-person auto-unlock permission.
+                # If person is not in the DB at all, allow unlock (backwards-compatible).
+                auto_unlock_names = await store.get_auto_unlock_names()
+                all_persons = {p["name"] for p in await store.get_persons()}
+                person_in_db = matched_name in all_persons
+                auto_unlock_allowed = (not person_in_db) or (matched_name in auto_unlock_names)
+                if not auto_unlock_allowed:
+                    logger.info(
+                        f"Auto-unlock disabled for {matched_name} — skipping unlock"
+                    )
+                elif (elapsed := time.time() - last_unlock_time) < Config.UNLOCK_COOLDOWN:
+                    logger.info(
+                        f"Face matched ({matched_name}) but cooldown active "
+                        f"({int(Config.UNLOCK_COOLDOWN - elapsed)}s remaining)"
+                    )
+                else:
+                    # matched_name is in auto_unlock_names and cooldown has elapsed
                     try:
                         success = await loop.run_in_executor(None, switchbot.unlock)
                         if success:
@@ -159,11 +174,6 @@ async def polling_loop(ring, recognizer, switchbot, detector: ObjectDetector, st
                         logger.error(
                             f"SwitchBot unlock failed with exception: {unlock_exc}"
                         )
-                else:
-                    logger.info(
-                        f"Face matched ({matched_name}) but cooldown active "
-                        f"({int(Config.UNLOCK_COOLDOWN - elapsed)}s remaining)"
-                    )
             else:
                 logger.info("Event processed — no authorized face matched")
 

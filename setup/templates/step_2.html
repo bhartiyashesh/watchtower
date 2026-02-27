@@ -1,0 +1,39 @@
+{% extends "setup_base.html" %}
+{% block title %}WatchTower Setup — Ring 2FA{% endblock %}
+
+{% block step_content %}
+<div class="card">
+    <h1>Ring Two-Factor Authentication</h1>
+    <p class="subtitle">Check your email or SMS for a verification code from Ring. Enter it within 10 minutes.</p>
+
+    <div class="error-box" id="error-box">{{ error or '' }}</div>
+
+    <form method="POST" action="/setup/step/2">
+        <div class="form-group">
+            <label for="otp_code">6-Digit Code</label>
+            <input type="text" id="otp_code" name="otp_code"
+                   placeholder="123456" maxlength="6" pattern="[0-9]{6}"
+                   inputmode="numeric" autocomplete="one-time-code" required autofocus>
+            <p class="hint">Ring sends a code to your registered email or phone number.</p>
+        </div>
+
+        <div class="btn-row">
+            <a href="/setup/step/1" class="btn btn-secondary">&larr; Back</a>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                Verify &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('otp_code').addEventListener('input', function(e) {
+    this.value = this.value.replace(/[^0-9]/g, '');
+});
+document.querySelector('form').addEventListener('submit', function() {
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Verifying...';
+});
+</script>
+{% endblock %}

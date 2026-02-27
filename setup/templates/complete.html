@@ -1,0 +1,83 @@
+{% extends "setup_base.html" %}
+{% block title %}WatchTower — Starting...{% endblock %}
+
+{% block step_content %}
+<div class="card" style="text-align: center; padding: 3rem 2rem;">
+    <div style="margin-bottom: 1.5rem;">
+        <div class="spinner" style="width: 36px; height: 36px; border-width: 3px; margin: 0 auto 1rem;"></div>
+        <h1 style="margin-bottom: 0.5rem;">WatchTower is starting...</h1>
+        <p class="subtitle" id="status-text">Restarting the application. This will take a few seconds.</p>
+    </div>
+</div>
+
+<div class="card" style="margin-top: 1rem;">
+    <h2 style="font-size: 1.05rem; margin-bottom: 0.75rem;">Run on Startup (Optional)</h2>
+    <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1rem;">
+        Have WatchTower start automatically when your computer boots.
+    </p>
+    <button class="btn btn-secondary" id="autostart-btn" onclick="installAutostart()" style="width: 100%; justify-content: center;">
+        Enable Auto-Start
+    </button>
+    <p id="autostart-result" style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 0.5rem; text-align: center;"></p>
+</div>
+
+<script>
+// Poll /health until the app comes back up, then redirect
+var attempts = 0;
+var maxAttempts = 30;
+
+function pollHealth() {
+    attempts++;
+    fetch('/health', {cache: 'no-store'})
+        .then(function(resp) {
+            if (resp.ok) {
+                document.getElementById('status-text').textContent = 'Ready! Redirecting to dashboard...';
+                setTimeout(function() {
+                    window.location.href = '/dashboard/';
+                }, 1000);
+            } else {
+                retry();
+            }
+        })
+        .catch(function() {
+            retry();
+        });
+}
+
+function retry() {
+    if (attempts < maxAttempts) {
+        setTimeout(pollHealth, 2000);
+    } else {
+        document.getElementById('status-text').innerHTML =
+            'Taking longer than expected. <a href="/dashboard/" style="color: var(--accent-blue);">Try manually &rarr;</a>';
+    }
+}
+
+// Start polling after a brief delay to allow restart
+setTimeout(pollHealth, 3000);
+
+async function installAutostart() {
+    var btn = document.getElementById('autostart-btn');
+    var result = document.getElementById('autostart-result');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Installing...';
+
+    try {
+        var resp = await fetch('/setup/api/install-autostart', {method: 'POST'});
+        var data = await resp.json();
+        if (data.ok) {
+            result.innerHTML = '<span style="color: var(--accent-green);">' + data.message + '</span>';
+            btn.textContent = 'Installed';
+        } else {
+            result.innerHTML = '<span style="color: #ff6666;">' + (data.error || 'Failed to install') + '</span>';
+            btn.disabled = false;
+            btn.textContent = 'Enable Auto-Start';
+        }
+    } catch (e) {
+        result.innerHTML = '<span style="color: #ff6666;">Not available during restart. Try again after redirect.</span>';
+        btn.disabled = false;
+        btn.textContent = 'Enable Auto-Start';
+    }
+}
+</script>
+{% endblock %}

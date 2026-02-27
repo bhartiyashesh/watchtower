@@ -1,0 +1,94 @@
+{% extends "setup_base.html" %}
+{% block title %}WatchTower Setup — Telegram Alerts{% endblock %}
+
+{% block step_content %}
+<div class="card">
+    <h1>Telegram Alerts <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 400;">(Optional)</span></h1>
+    <p class="subtitle">Get notified on Telegram when strangers are detected or your door unlocks.</p>
+
+    <div class="error-box" id="error-box">{{ error or '' }}</div>
+
+    <form method="POST" action="/setup/step/5" id="telegram-form">
+        <div class="form-group">
+            <label for="telegram_bot_token">Bot Token</label>
+            <input type="text" id="telegram_bot_token" name="telegram_bot_token"
+                   value="{{ telegram_bot_token or '' }}"
+                   placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+            <p class="hint">
+                Message <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a>
+                on Telegram &rarr; <code>/newbot</code> &rarr; copy the token.
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label for="telegram_chat_id">Chat ID</label>
+            <input type="text" id="telegram_chat_id" name="telegram_chat_id"
+                   value="{{ telegram_chat_id or '' }}"
+                   placeholder="e.g. 1234567890">
+            <p class="hint">
+                Message <a href="https://t.me/userinfobot" target="_blank" rel="noopener">@userinfobot</a>
+                on Telegram to get your Chat ID.
+            </p>
+        </div>
+
+        <div style="margin-top: 0.75rem;">
+            <button type="button" class="btn btn-discover" id="validate-btn" onclick="validateTelegram()">
+                Test Connection
+            </button>
+            <span id="validate-result" style="margin-left: 0.75rem; font-size: 0.85rem;"></span>
+        </div>
+
+        <div class="btn-row">
+            <a href="/setup/step/4" class="btn btn-secondary">&larr; Back</a>
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" name="action" value="skip" class="btn btn-skip">
+                    Skip
+                </button>
+                <button type="submit" name="action" value="save" class="btn btn-primary" id="submit-btn">
+                    Next &rarr;
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+async function validateTelegram() {
+    var btn = document.getElementById('validate-btn');
+    var result = document.getElementById('validate-result');
+    var token = document.getElementById('telegram_bot_token').value;
+    var errorBox = document.getElementById('error-box');
+
+    if (!token) {
+        errorBox.textContent = 'Enter a Bot Token first.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Testing...';
+    result.textContent = '';
+    errorBox.style.display = 'none';
+
+    try {
+        var resp = await fetch('/setup/api/validate-telegram', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({token: token})
+        });
+        var data = await resp.json();
+
+        if (data.ok) {
+            result.innerHTML = '<span style="color: var(--accent-green);">Connected as @' + data.bot_username + '</span>';
+        } else {
+            result.innerHTML = '<span style="color: #ff6666;">' + (data.error || 'Invalid token') + '</span>';
+        }
+    } catch (e) {
+        result.innerHTML = '<span style="color: #ff6666;">Network error</span>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Test Connection';
+}
+</script>
+{% endblock %}

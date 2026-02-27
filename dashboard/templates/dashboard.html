@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Smart Lock{% endblock %}
+{% block title %}Dashboard - WatchTower{% endblock %}
 
 {% block content %}
 <h1>Dashboard</h1>
@@ -13,30 +13,38 @@
         <div class="stat-sub">Ring doorbell events since midnight UTC</div>
     </div>
 
-    <!-- Lock status -->
+    <!-- Lock status + controls -->
     <div class="stat-card">
         <div class="stat-label">Lock Status</div>
         <div style="margin-top: 0.5rem;">
-            {% if lock_status and lock_status is mapping %}
-                {% set state = lock_status.get("lockState", "unknown") %}
-                {% if state == "locked" %}
-                    <span class="lock-badge lock-locked">Locked</span>
-                {% elif state == "unlocked" %}
-                    <span class="lock-badge lock-unlocked">Unlocked</span>
+            <span class="lock-badge" id="lock-badge">
+                {% if lock_status and lock_status is mapping %}
+                    {% set state = lock_status.get("lockState", "unknown") %}
+                    {% if state == "locked" %}
+                        <span class="lock-locked">Locked</span>
+                    {% elif state == "unlocked" %}
+                        <span class="lock-unlocked">Unlocked</span>
+                    {% else %}
+                        <span class="lock-unknown">{{ state | title }}</span>
+                    {% endif %}
                 {% else %}
-                    <span class="lock-badge lock-unknown">{{ state | title }}</span>
+                    <span class="lock-unknown">Unknown</span>
                 {% endif %}
-            {% else %}
-                <span class="lock-badge lock-unknown">Unknown</span>
-            {% endif %}
+            </span>
         </div>
-        <div class="stat-sub" style="margin-top: 0.5rem;">
-            {% if lock_status and lock_status is mapping %}
-                Live status from SwitchBot
-            {% else %}
-                Could not retrieve live status
-            {% endif %}
+        <div class="lock-controls" style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+            <button id="btn-lock" class="lock-btn lock-btn-lock" onclick="sendLockCommand('lock')">Lock</button>
+            <button id="btn-unlock" class="lock-btn lock-btn-unlock" onclick="sendLockCommand('unlock')">Unlock</button>
         </div>
+        <div class="stat-sub" id="lock-msg" style="margin-top: 0.5rem;">SwitchBot smart lock</div>
+    </div>
+
+    <!-- Camera battery -->
+    <div class="stat-card">
+        <div class="stat-label">Camera Battery</div>
+        <div class="stat-value" id="battery-value">—</div>
+        <div id="battery-bar" style="margin-top: 0.4rem;"></div>
+        <div class="stat-sub">Ring doorbell battery level</div>
     </div>
 </div>
 
@@ -47,11 +55,11 @@
         {% if last_event.thumbnail_path %}
             <img
                 src="/dashboard/thumbnails/{{ last_event.thumbnail_path | basename }}"
-                alt="Thumbnail for event at {{ last_event.recorded_at }}"
+                alt="Thumbnail for event at {{ last_event.recorded_at | humandate }}"
             >
         {% endif %}
         <div class="event-info">
-            <div class="event-meta">{{ last_event.recorded_at }}</div>
+            <div class="event-meta"><span class="utc-time" data-utc="{{ last_event.recorded_at }}"></span></div>
             <div class="event-title">
                 {% if last_event.person_name %}
                     {{ last_event.person_name }}
@@ -85,4 +93,105 @@
 {% endif %}
 
 <a href="/dashboard/events" class="link-btn">View full event history</a>
+
+<style>
+    .lock-btn {
+        padding: 0.4rem 1rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, opacity 0.15s;
+    }
+    .lock-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+    }
+    .lock-btn-lock {
+        background: rgba(68, 204, 136, 0.2);
+        color: var(--accent-green);
+        border: 1px solid rgba(68, 204, 136, 0.3);
+    }
+    .lock-btn-lock:hover:not(:disabled) {
+        background: rgba(68, 204, 136, 0.35);
+    }
+    .lock-btn-unlock {
+        background: rgba(255, 136, 68, 0.2);
+        color: var(--accent-orange);
+        border: 1px solid rgba(255, 136, 68, 0.3);
+    }
+    .lock-btn-unlock:hover:not(:disabled) {
+        background: rgba(255, 136, 68, 0.35);
+    }
+</style>
+
+<script>
+// Convert UTC timestamps to local time
+document.querySelectorAll('.utc-time').forEach(el => {
+    const raw = el.dataset.utc;
+    if (!raw) return;
+    const utc = raw.includes('Z') ? raw : raw + 'Z';
+    const dt = new Date(utc);
+    el.textContent = dt.toLocaleString(undefined, {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: 'numeric', minute: '2-digit'
+    });
+});
+
+// Fetch battery level
+fetch('/dashboard/api/battery', { credentials: 'include' })
+    .then(r => r.json())
+    .then(d => {
+        const el = document.getElementById('battery-value');
+        const bar = document.getElementById('battery-bar');
+        if (d.battery !== null) {
+            el.textContent = d.battery + '%';
+            const color = d.battery > 50 ? 'var(--accent-green)' : d.battery > 20 ? 'var(--accent-yellow)' : 'var(--accent-orange)';
+            el.style.color = color;
+            bar.innerHTML = '<div style="background:rgba(255,255,255,0.06);border-radius:4px;height:6px;overflow:hidden"><div style="width:' + d.battery + '%;height:100%;background:' + color + ';border-radius:4px"></div></div>';
+        } else {
+            el.textContent = 'N/A';
+        }
+    })
+    .catch(() => {});
+
+// Lock / unlock controls
+async function sendLockCommand(action) {
+    const btnLock = document.getElementById('btn-lock');
+    const btnUnlock = document.getElementById('btn-unlock');
+    const badge = document.getElementById('lock-badge');
+    const msg = document.getElementById('lock-msg');
+
+    btnLock.disabled = true;
+    btnUnlock.disabled = true;
+    msg.textContent = action === 'lock' ? 'Locking...' : 'Unlocking...';
+
+    try {
+        const resp = await fetch('/dashboard/api/' + action, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || 'Command failed');
+        }
+
+        const data = await resp.json();
+        if (data.status === 'locked') {
+            badge.innerHTML = '<span class="lock-badge lock-locked">Locked</span>';
+            msg.textContent = 'Door locked successfully';
+        } else {
+            badge.innerHTML = '<span class="lock-badge lock-unlocked">Unlocked</span>';
+            msg.textContent = 'Door unlocked successfully';
+        }
+    } catch (e) {
+        msg.textContent = 'Error: ' + e.message;
+    } finally {
+        btnLock.disabled = false;
+        btnUnlock.disabled = false;
+    }
+}
+</script>
 {% endblock %}

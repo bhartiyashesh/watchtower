@@ -1,0 +1,306 @@
+<mxfile host="app.diagrams.net" agent="WatchTower" version="24.0.0">
+  <diagram name="WatchTower Architecture" id="watchtower-arch">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="WatchTower — System Architecture" style="text;html=1;fontSize=24;fontStyle=1;align=center;verticalAlign=middle;fillColor=none;strokeColor=none;fontColor=#E8E8ED;" vertex="1" parent="1">
+          <mxGeometry x="500" y="20" width="600" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- HARDWARE LAYER (left side) -->
+        <!-- ═══════════════════════════════════════════ -->
+
+        <!-- Ring Doorbell -->
+        <mxCell id="ring" value="&lt;b&gt;Ring Doorbell&lt;/b&gt;&lt;br&gt;Motion detection&lt;br&gt;Video capture&lt;br&gt;Battery monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#4488ff;strokeWidth=2;fontColor=#E8E8ED;fontSize=12;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="170" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- SwitchBot Hub Mini -->
+        <mxCell id="hub" value="&lt;b&gt;SwitchBot Hub Mini&lt;/b&gt;&lt;br&gt;Cloud API bridge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#44cc88;strokeWidth=2;fontColor=#E8E8ED;fontSize=12;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- SwitchBot Lock -->
+        <mxCell id="lock" value="&lt;b&gt;SwitchBot Lock&lt;/b&gt;&lt;br&gt;Lock / Unlock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#44cc88;strokeWidth=2;fontColor=#E8E8ED;fontSize=12;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="620" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Hub to Lock connection -->
+        <mxCell id="hub-lock" value="BLE" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#44cc88;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="hub" target="lock">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- CORE PIPELINE (center) -->
+        <!-- ═══════════════════════════════════════════ -->
+
+        <!-- Polling Loop container -->
+        <mxCell id="pipeline-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#12121a;strokeColor=#333;strokeWidth=1;arcSize=8;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="290" y="100" width="440" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="pipeline-label" value="&lt;b&gt;WatchTower Core&lt;/b&gt;&amp;nbsp;(app.py + main.py)" style="text;html=1;fontSize=13;fontColor=#8888a0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="350" y="108" width="320" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Ring Client -->
+        <mxCell id="ring-client" value="&lt;b&gt;ring_client.py&lt;/b&gt;&lt;br&gt;Auth + event polling&lt;br&gt;Frame capture (MP4→JPEG)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#4488ff;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="150" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Ring → Ring Client -->
+        <mxCell id="ring-to-client" value="polling every 5s" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#4488ff;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="ring" target="ring-client">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Object Detector -->
+        <mxCell id="yolo" value="&lt;b&gt;object_detector.py&lt;/b&gt;&lt;br&gt;YOLO11n (async)&lt;br&gt;person | car | dog | cat | package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#ffcc44;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="260" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Ring Client → YOLO -->
+        <mxCell id="client-to-yolo" value="JPEG frame" style="rounded=1;strokeColor=#666;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="ring-client" target="yolo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Face Recognizer -->
+        <mxCell id="face" value="&lt;b&gt;face_recognizer.py&lt;/b&gt;&lt;br&gt;dlib HOG + 128D encoding&lt;br&gt;Match against known_faces/" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#8844ff;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="370" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- YOLO → Face -->
+        <mxCell id="yolo-to-face" value="person crop" style="rounded=1;strokeColor=#666;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="yolo" target="face">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SwitchBot Client -->
+        <mxCell id="switchbot" value="&lt;b&gt;switchbot_client.py&lt;/b&gt;&lt;br&gt;Cloud API (HMAC-SHA256)&lt;br&gt;Lock / Unlock / Status" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#44cc88;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="480" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Face → SwitchBot -->
+        <mxCell id="face-to-sb" value="match → unlock" style="rounded=1;strokeColor=#44cc88;strokeWidth=1.5;fontColor=#44cc88;fontSize=10;fontStyle=1;" edge="1" parent="1" source="face" target="switchbot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- SwitchBot Client → Hub Mini -->
+        <mxCell id="sb-to-hub" value="Cloud API" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#44cc88;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="switchbot" target="hub">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Event Store -->
+        <mxCell id="store" value="&lt;b&gt;event_store.py&lt;/b&gt;&lt;br&gt;SQLite3 (WAL mode)&lt;br&gt;events + detections tables&lt;br&gt;Analytics queries" style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#ff8844;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;size=12;" vertex="1" parent="1">
+          <mxGeometry x="570" y="300" width="140" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Pipeline → Store (multiple sources) -->
+        <mxCell id="yolo-to-store" value="detections" style="rounded=1;strokeColor=#ff8844;strokeWidth=1;fontColor=#888;fontSize=9;dashed=1;" edge="1" parent="1" source="yolo" target="store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="face-to-store" value="events" style="rounded=1;strokeColor=#ff8844;strokeWidth=1;fontColor=#888;fontSize=9;dashed=1;" edge="1" parent="1" source="face" target="store">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Thumbnails -->
+        <mxCell id="thumbs" value="&lt;b&gt;thumbnails/&lt;/b&gt;&lt;br&gt;JPEG snapshots" style="shape=folder;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#888;strokeWidth=1;fontColor=#E8E8ED;fontSize=11;tabWidth=60;tabHeight=14;tabPosition=left;" vertex="1" parent="1">
+          <mxGeometry x="580" y="170" width="120" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Ring Client → Thumbnails -->
+        <mxCell id="client-to-thumbs" value="save" style="rounded=1;strokeColor=#888;strokeWidth=1;fontColor=#888;fontSize=9;dashed=1;" edge="1" parent="1" source="ring-client" target="thumbs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision diamond: Known? -->
+        <mxCell id="decision" value="Known&lt;br&gt;face?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#8844ff;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="460" width="80" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="face-to-decision" value="" style="rounded=1;strokeColor=#8844ff;strokeWidth=1.5;" edge="1" parent="1" source="face" target="decision">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Decision Yes → Unlock -->
+        <mxCell id="decision-yes" value="yes" style="rounded=1;strokeColor=#44cc88;strokeWidth=1.5;fontColor=#44cc88;fontSize=10;fontStyle=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="decision" target="switchbot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Telegram Alerter -->
+        <mxCell id="alerter" value="&lt;b&gt;telegram_alerter.py&lt;/b&gt;&lt;br&gt;Photo alerts&lt;br&gt;60s coalescing" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#44ddcc;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="340" y="600" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Decision No → Alert stranger -->
+        <mxCell id="decision-no" value="stranger" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#ff8844;strokeWidth=1.5;fontColor=#ff8844;fontSize=10;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="decision" target="alerter">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="350" y="560" />
+              <mxPoint x="440" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Telegram Commands -->
+        <mxCell id="commands" value="&lt;b&gt;telegram_commands.py&lt;/b&gt;&lt;br&gt;/status /lock /unlock&lt;br&gt;/snap /events /mute" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#44ddcc;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="570" y="580" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- EXTERNAL SERVICES (right side) -->
+        <!-- ═══════════════════════════════════════════ -->
+
+        <!-- Telegram -->
+        <mxCell id="telegram" value="&lt;b&gt;Telegram&lt;/b&gt;&lt;br&gt;Bot API" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#44ddcc;strokeWidth=2;fontColor=#E8E8ED;fontSize=12;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="850" y="590" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Alerter → Telegram -->
+        <mxCell id="alerter-to-tg" value="photo alerts" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#44ddcc;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="alerter" target="telegram">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="630" />
+              <mxPoint x="790" y="620" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Commands → Telegram -->
+        <mxCell id="cmds-to-tg" value="getUpdates" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#44ddcc;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="commands" target="telegram">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- WEB DASHBOARD (right side) -->
+        <!-- ═══════════════════════════════════════════ -->
+
+        <!-- Dashboard container -->
+        <mxCell id="dash-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#12121a;strokeColor=#333;strokeWidth=1;arcSize=8;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="830" y="100" width="360" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="dash-label" value="&lt;b&gt;Web Dashboard&lt;/b&gt;&amp;nbsp;(FastAPI + Jinja2 + D3.js)" style="text;html=1;fontSize=13;fontColor=#8888a0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="870" y="108" width="290" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- Router -->
+        <mxCell id="router" value="&lt;b&gt;dashboard/router.py&lt;/b&gt;&lt;br&gt;HTTP Basic Auth&lt;br&gt;REST API endpoints" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#4488ff;strokeWidth=1.5;fontColor=#E8E8ED;fontSize=11;arcSize=10;" vertex="1" parent="1">
+          <mxGeometry x="870" y="150" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Store → Router -->
+        <mxCell id="store-to-router" value="queries" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#ff8844;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="store" target="router">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="760" y="355" />
+              <mxPoint x="760" y="185" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Dashboard Page -->
+        <mxCell id="page-dash" value="&lt;b&gt;Dashboard&lt;/b&gt;&lt;br&gt;Stats + Lock Control&lt;br&gt;Battery + Last Event" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#555;strokeWidth=1;fontColor=#E8E8ED;fontSize=10;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="850" y="245" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Events Page -->
+        <mxCell id="page-events" value="&lt;b&gt;Event History&lt;/b&gt;&lt;br&gt;Filters + Pagination&lt;br&gt;Thumbnails" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#555;strokeWidth=1;fontColor=#E8E8ED;fontSize=10;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="245" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Analytics Page -->
+        <mxCell id="page-analytics" value="&lt;b&gt;Analytics&lt;/b&gt;&lt;br&gt;Heatmap + Donut&lt;br&gt;Timeline + Weather&lt;br&gt;Peak Hours + Scatter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#555;strokeWidth=1;fontColor=#E8E8ED;fontSize=10;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="850" y="325" width="150" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Timelapse Page -->
+        <mxCell id="page-timelapse" value="&lt;b&gt;Timelapse&lt;/b&gt;&lt;br&gt;Date picker → FFmpeg&lt;br&gt;MP4 generation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1e1e30;strokeColor=#555;strokeWidth=1;fontColor=#E8E8ED;fontSize=10;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="325" width="150" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- Weather API -->
+        <mxCell id="weather" value="&lt;b&gt;Open-Meteo API&lt;/b&gt;&lt;br&gt;Temperature + Rainfall" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#ffcc44;strokeWidth=2;fontColor=#E8E8ED;fontSize=11;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="430" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Analytics → Weather -->
+        <mxCell id="analytics-to-weather" value="client-side fetch" style="rounded=1;strokeColor=#ffcc44;strokeWidth=1;fontColor=#888;fontSize=9;dashed=1;" edge="1" parent="1" source="page-analytics" target="weather">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Browser -->
+        <mxCell id="browser" value="&lt;b&gt;Browser&lt;/b&gt;&lt;br&gt;User" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#8844ff;strokeWidth=2;fontColor=#E8E8ED;fontSize=12;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="225" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Router → Browser -->
+        <mxCell id="router-to-browser" value="HTML / JSON / MP4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#8844ff;strokeWidth=1.5;fontColor=#888;fontSize=10;" edge="1" parent="1" source="router" target="browser">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1220" y="185" />
+              <mxPoint x="1220" y="255" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Phone -->
+        <mxCell id="phone" value="&lt;b&gt;Phone&lt;/b&gt;&lt;br&gt;Telegram" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#1a1a2e;strokeColor=#44ddcc;strokeWidth=2;fontColor=#E8E8ED;fontSize=12;arcSize=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="590" width="120" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Telegram → Phone -->
+        <mxCell id="tg-to-phone" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#44ddcc;strokeWidth=1.5;" edge="1" parent="1" source="telegram" target="phone">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════════ -->
+        <!-- LEGEND -->
+        <!-- ═══════════════════════════════════════════ -->
+        <mxCell id="legend-bg" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#0a0a0f;strokeColor=#333;strokeWidth=1;arcSize=8;" vertex="1" parent="1">
+          <mxGeometry x="1250" y="340" width="160" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="&lt;b&gt;Legend&lt;/b&gt;" style="text;html=1;fontSize=11;fontColor=#8888a0;align=center;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="348" width="120" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="l1" value="Ring / Polling" style="text;html=1;fontSize=10;fontColor=#4488ff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="375" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="l1d" value="" style="rounded=1;fillColor=#4488ff;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1268" y="379" width="14" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" value="YOLO Detection" style="text;html=1;fontSize=10;fontColor=#ffcc44;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="400" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="l2d" value="" style="rounded=1;fillColor=#ffcc44;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1268" y="404" width="14" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" value="Face Recognition" style="text;html=1;fontSize=10;fontColor=#8844ff;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="425" width="110" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="l3d" value="" style="rounded=1;fillColor=#8844ff;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1268" y="429" width="14" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" value="Lock Control" style="text;html=1;fontSize=10;fontColor=#44cc88;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="450" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="l4d" value="" style="rounded=1;fillColor=#44cc88;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1268" y="454" width="14" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" value="Telegram" style="text;html=1;fontSize=10;fontColor=#44ddcc;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="475" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="l5d" value="" style="rounded=1;fillColor=#44ddcc;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1268" y="479" width="14" height="10" as="geometry" />
+        </mxCell>
+        <mxCell id="l6" value="Database" style="text;html=1;fontSize=10;fontColor=#ff8844;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="500" width="100" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="l6d" value="" style="rounded=1;fillColor=#ff8844;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="1268" y="504" width="14" height="10" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,106 @@
+{% extends "setup_base.html" %}
+{% block title %}WatchTower Setup — SwitchBot Lock{% endblock %}
+
+{% block step_content %}
+<div class="card">
+    <h1>SwitchBot Lock</h1>
+    <p class="subtitle">Connect your SwitchBot Lock for automated door control.</p>
+
+    <div class="error-box" id="error-box">{{ error or '' }}</div>
+
+    <form method="POST" action="/setup/step/3" id="switchbot-form">
+        <div class="form-group">
+            <label for="switchbot_token">API Token</label>
+            <input type="text" id="switchbot_token" name="switchbot_token"
+                   value="{{ switchbot_token or '' }}" placeholder="Your SwitchBot API token" required>
+            <p class="hint">
+                Open SwitchBot app &rarr; Profile &rarr; Preferences &rarr;
+                <a href="https://support.switch-bot.com/hc/en-us/articles/12822710195351" target="_blank" rel="noopener">Developer Options</a>
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label for="switchbot_secret">API Secret</label>
+            <input type="text" id="switchbot_secret" name="switchbot_secret"
+                   value="{{ switchbot_secret or '' }}" placeholder="Your SwitchBot API secret" required>
+        </div>
+
+        <div class="form-group">
+            <label for="switchbot_device_id">Lock Device ID</label>
+            <input type="text" id="switchbot_device_id" name="switchbot_device_id"
+                   value="{{ switchbot_device_id or '' }}" placeholder="e.g. F7FE378850B4">
+            <button type="button" class="btn btn-discover" id="discover-btn" onclick="discoverDevices()">
+                Discover Devices
+            </button>
+            <div id="device-list" style="margin-top: 0.5rem; display: none;"></div>
+        </div>
+
+        <div class="btn-row">
+            <a href="/setup/step/1" class="btn btn-secondary">&larr; Back</a>
+            <button type="submit" class="btn btn-primary" id="submit-btn">
+                Next &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+async function discoverDevices() {
+    var btn = document.getElementById('discover-btn');
+    var token = document.getElementById('switchbot_token').value;
+    var secret = document.getElementById('switchbot_secret').value;
+    var errorBox = document.getElementById('error-box');
+    var deviceList = document.getElementById('device-list');
+
+    if (!token || !secret) {
+        errorBox.textContent = 'Enter your Token and Secret first.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Discovering...';
+    errorBox.style.display = 'none';
+
+    try {
+        var resp = await fetch('/setup/api/validate-switchbot', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({token: token, secret: secret})
+        });
+        var data = await resp.json();
+
+        if (data.ok) {
+            if (data.devices.length === 0) {
+                deviceList.innerHTML = '<p class="hint">No lock devices found. Enter the Device ID manually.</p>';
+                deviceList.style.display = 'block';
+            } else {
+                var html = '<select onchange="document.getElementById(\'switchbot_device_id\').value=this.value" style="width:100%;padding:0.5rem;background:var(--bg-primary);border:1px solid var(--border-color);border-radius:6px;color:var(--text-primary);font-size:0.9rem;">';
+                html += '<option value="">Select a device...</option>';
+                data.devices.forEach(function(d) {
+                    html += '<option value="' + d.id + '">' + d.name + ' (' + d.id + ')</option>';
+                });
+                html += '</select>';
+                deviceList.innerHTML = html;
+                deviceList.style.display = 'block';
+            }
+        } else {
+            errorBox.textContent = data.error || 'Failed to connect to SwitchBot API.';
+            errorBox.style.display = 'block';
+        }
+    } catch (e) {
+        errorBox.textContent = 'Network error. Please try again.';
+        errorBox.style.display = 'block';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Discover Devices';
+}
+
+document.getElementById('switchbot-form').addEventListener('submit', function() {
+    var btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Validating...';
+});
+</script>
+{% endblock %}
