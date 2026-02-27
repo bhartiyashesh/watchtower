@@ -135,6 +135,10 @@ async def dashboard_home(request: Request) -> HTMLResponse:
     except Exception:
         lock_status = None
 
+    blink = getattr(request.app.state, "blink", None)
+    blink_configured = blink is not None
+    blink_needs_2fa = blink.needs_2fa if blink else False
+
     return templates.TemplateResponse(
         "dashboard.html",
         {
@@ -142,6 +146,8 @@ async def dashboard_home(request: Request) -> HTMLResponse:
             "today_count": today_count,
             "last_event": last_event,
             "lock_status": lock_status,
+            "blink_configured": blink_configured,
+            "blink_needs_2fa": blink_needs_2fa,
         },
     )
 
@@ -300,6 +306,48 @@ async def api_recent_orb(request: Request, limit: int = Query(50, ge=1, le=200))
     store = request.app.state.store
     data = await store.get_recent_events_for_orb(limit=limit)
     return JSONResponse(data)
+
+
+@router.get("/api/blink-snapshot")
+async def api_blink_snapshot(request: Request):
+    """Return a JPEG snapshot from the Blink camera."""
+    from fastapi.responses import Response
+
+    blink = getattr(request.app.state, "blink", None)
+    if blink is None:
+        raise HTTPException(status_code=404, detail="Blink camera not configured")
+
+    if blink.needs_2fa:
+        raise HTTPException(status_code=403, detail="Blink 2FA verification required")
+
+    image_bytes = await blink.get_snapshot()
+
+    if image_bytes is None:
+        raise HTTPException(status_code=502, detail="Failed to fetch snapshot from Blink")
+
+    return Response(content=image_bytes, media_type="image/jpeg")
+
+
+@router.post("/api/blink-2fa")
+async def api_blink_2fa(request: Request) -> JSONResponse:
+    """Submit a Blink 2FA verification code."""
+    blink = getattr(request.app.state, "blink", None)
+    if blink is None:
+        raise HTTPException(status_code=404, detail="Blink camera not configured")
+
+    if not blink.needs_2fa:
+        return JSONResponse({"status": "ok", "message": "Already verified"})
+
+    body = await request.json()
+    code = body.get("code", "").strip()
+    if not code:
+        raise HTTPException(status_code=400, detail="Verification code is required")
+
+    success = await blink.submit_2fa(code)
+    if not success:
+        raise HTTPException(status_code=401, detail="Invalid verification code")
+
+    return JSONResponse({"status": "ok", "message": "Blink camera verified"})
 
 
 @router.get("/api/battery")

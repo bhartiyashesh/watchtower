@@ -1,0 +1,65 @@
+{% extends "setup_base.html" %}
+{% block title %}WatchTower Setup — Review & Launch{% endblock %}
+
+{% block step_content %}
+<div class="card">
+    <h1>Review & Launch</h1>
+    <p class="subtitle">Everything looks good. Review your configuration and launch WatchTower.</p>
+
+    <div class="error-box" id="error-box">{{ error or '' }}</div>
+
+    <div style="margin-bottom: 1.5rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
+                <span style="color: var(--text-secondary); font-size: 0.88rem;">Ring Account</span>
+                <span style="font-size: 0.88rem;">{{ ring_username }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
+                <span style="color: var(--text-secondary); font-size: 0.88rem;">SwitchBot Lock</span>
+                <span style="font-size: 0.88rem;">{{ switchbot_device_id }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
+                <span style="color: var(--text-secondary); font-size: 0.88rem;">Dashboard User</span>
+                <span style="font-size: 0.88rem;">{{ dashboard_username }}</span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
+                <span style="color: var(--text-secondary); font-size: 0.88rem;">Telegram Alerts</span>
+                {% if telegram_enabled %}
+                <span style="font-size: 0.88rem; color: var(--accent-green);">Enabled</span>
+                {% else %}
+                <span style="font-size: 0.88rem; color: var(--text-secondary);">Disabled</span>
+                {% endif %}
+            </div>
+
+            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
+                <span style="color: var(--text-secondary); font-size: 0.88rem;">Blink Camera</span>
+                {% if blink_enabled %}
+                <span style="font-size: 0.88rem; color: var(--accent-green);">Enabled</span>
+                {% else %}
+                <span style="font-size: 0.88rem; color: var(--text-secondary);">Disabled</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" action="/setup/step/7" id="launch-form">
+        <div class="btn-row">
+            <a href="/setup/step/6" class="btn btn-secondary">&larr; Back</a>
+            <button type="submit" class="btn btn-success" id="launch-btn">
+                Launch WatchTower &rarr;
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.getElementById('launch-form').addEventListener('submit', function() {
+    var btn = document.getElementById('launch-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Launching...';
+});
+</script>
+{% endblock %}

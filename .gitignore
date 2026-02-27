@@ -1,5 +1,6 @@
 .env
 .ring_token.cache
+.blink_creds.cache
 .setup_complete
 __pycache__/
 *.pyc

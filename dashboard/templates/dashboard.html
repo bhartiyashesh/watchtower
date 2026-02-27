@@ -46,6 +46,64 @@
         <div id="battery-bar" style="margin-top: 0.4rem;"></div>
         <div class="stat-sub">Ring doorbell battery level</div>
     </div>
+
+    {% if blink_configured %}
+    <!-- Blink camera feed -->
+    <div class="stat-card blink-card">
+        <div class="stat-label">Blink Camera</div>
+
+        <!-- 2FA verification form (shown when Blink needs verification) -->
+        <div id="blink-2fa" style="margin-top: 0.5rem; {% if not blink_needs_2fa %}display: none;{% endif %}">
+            <div style="
+                width: 100%; aspect-ratio: 16/9; border-radius: 6px;
+                background: rgba(255,255,255,0.04); display: flex;
+                align-items: center; justify-content: center; flex-direction: column;
+                gap: 0.75rem; padding: 1rem;
+            ">
+                <div style="color: rgba(255,255,255,0.5); font-size: 0.85rem; text-align: center;">
+                    Blink sent a verification code to your email
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input
+                        id="blink-2fa-code"
+                        type="text"
+                        maxlength="6"
+                        placeholder="Pin code"
+                        style="
+                            width: 8rem; padding: 0.4rem 0.6rem; border-radius: 6px;
+                            border: 1px solid rgba(255,255,255,0.15);
+                            background: rgba(255,255,255,0.06); color: #fff;
+                            font-size: 1rem; text-align: center; letter-spacing: 0.2em;
+                        "
+                    >
+                    <button class="lock-btn lock-btn-lock" onclick="submitBlink2fa()">Verify</button>
+                </div>
+                <div id="blink-2fa-msg" class="stat-sub"></div>
+            </div>
+        </div>
+
+        <!-- Snapshot view (shown after successful auth) -->
+        <div id="blink-snapshot-view" style="{% if blink_needs_2fa %}display: none;{% endif %}">
+            <div class="blink-snapshot-wrap" style="margin-top: 0.5rem; position: relative;">
+                <img
+                    id="blink-snapshot"
+                    alt="Blink camera snapshot"
+                    style="width: 100%; border-radius: 6px; display: none;"
+                >
+                <div id="blink-placeholder" style="
+                    width: 100%; aspect-ratio: 16/9; border-radius: 6px;
+                    background: rgba(255,255,255,0.04); display: flex;
+                    align-items: center; justify-content: center;
+                    color: rgba(255,255,255,0.3); font-size: 0.85rem;
+                ">Loading snapshot...</div>
+            </div>
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+                <button id="blink-refresh" class="lock-btn lock-btn-lock" onclick="refreshBlink()">Refresh</button>
+                <span id="blink-msg" class="stat-sub">Live snapshot</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
 
 <!-- Most recent event -->
@@ -155,6 +213,90 @@ fetch('/dashboard/api/battery', { credentials: 'include' })
         }
     })
     .catch(() => {});
+
+// Blink 2FA submission
+async function submitBlink2fa() {
+    const input = document.getElementById('blink-2fa-code');
+    const msg = document.getElementById('blink-2fa-msg');
+    if (!input) return;
+
+    const code = input.value.trim();
+    if (!code) {
+        msg.textContent = 'Please enter the verification code';
+        return;
+    }
+
+    msg.textContent = 'Verifying...';
+
+    try {
+        const resp = await fetch('/dashboard/api/blink-2fa', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: code }),
+        });
+
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || 'Verification failed');
+        }
+
+        // Success — hide 2FA form, show snapshot view
+        document.getElementById('blink-2fa').style.display = 'none';
+        document.getElementById('blink-snapshot-view').style.display = 'block';
+        refreshBlink();
+    } catch (e) {
+        msg.textContent = e.message;
+    }
+}
+
+// Allow Enter key to submit the Blink 2FA code
+const blink2faInput = document.getElementById('blink-2fa-code');
+if (blink2faInput) {
+    blink2faInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') submitBlink2fa();
+    });
+}
+
+// Blink camera snapshot
+async function refreshBlink() {
+    const img = document.getElementById('blink-snapshot');
+    const placeholder = document.getElementById('blink-placeholder');
+    const btn = document.getElementById('blink-refresh');
+    const msg = document.getElementById('blink-msg');
+    if (!img) return;
+
+    btn.disabled = true;
+    msg.textContent = 'Fetching snapshot...';
+
+    try {
+        const resp = await fetch('/dashboard/api/blink-snapshot', { credentials: 'include' });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || 'Failed to fetch snapshot');
+        }
+        const blob = await resp.blob();
+        const url = URL.createObjectURL(blob);
+        img.onload = () => {
+            if (placeholder) placeholder.style.display = 'none';
+            img.style.display = 'block';
+            URL.revokeObjectURL(url);
+        };
+        img.src = url;
+        msg.textContent = 'Updated ' + new Date().toLocaleTimeString();
+    } catch (e) {
+        msg.textContent = 'Error: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Auto-load Blink snapshot on page load (only if not waiting for 2FA)
+if (document.getElementById('blink-snapshot') &&
+    document.getElementById('blink-snapshot-view') &&
+    document.getElementById('blink-snapshot-view').style.display !== 'none') {
+    refreshBlink();
+}
 
 // Lock / unlock controls
 async function sendLockCommand(action) {

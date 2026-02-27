@@ -73,7 +73,7 @@ async def setup_step(request: Request, n: int):
     redir = _guard(request)
     if redir:
         return redir
-    if n < 1 or n > 6:
+    if n < 1 or n > 7:
         return RedirectResponse("/setup/step/1", status_code=303)
 
     state = _get_wizard_state(request)
@@ -294,10 +294,53 @@ async def post_step_5(request: Request):
 
 
 # ---------------------------------------------------------------------------
-# Step 6: Finalize → write .env → restart
+# Step 6: Blink Camera (optional)
 # ---------------------------------------------------------------------------
 @router.post("/step/6", response_class=HTMLResponse)
 async def post_step_6(request: Request):
+    redir = _guard(request)
+    if redir:
+        return redir
+
+    form = await request.form()
+    action = form.get("action", "save")
+
+    if action == "skip":
+        _set_wizard_state(request, {
+            "blink_username": "",
+            "blink_password": "",
+            "blink_camera_name": "",
+            "blink_enabled": False,
+        })
+        return RedirectResponse("/setup/step/7", status_code=303)
+
+    username = form.get("blink_username", "").strip()
+    password = form.get("blink_password", "").strip()
+    camera_name = form.get("blink_camera_name", "").strip()
+
+    if not username or not password:
+        return templates.TemplateResponse("step_6.html", {
+            "request": request, "current_step": 6,
+            "error": "Both email and password are required, or click Skip.",
+            "blink_username": username, "blink_password": password,
+            "blink_camera_name": camera_name,
+        })
+
+    _set_wizard_state(request, {
+        "blink_username": username,
+        "blink_password": password,
+        "blink_camera_name": camera_name,
+        "blink_enabled": True,
+    })
+
+    return RedirectResponse("/setup/step/7", status_code=303)
+
+
+# ---------------------------------------------------------------------------
+# Step 7: Finalize → write .env → restart
+# ---------------------------------------------------------------------------
+@router.post("/step/7", response_class=HTMLResponse)
+async def post_step_7(request: Request):
     redir = _guard(request)
     if redir:
         return redir
@@ -321,13 +364,21 @@ async def post_step_6(request: Request):
     if state.get("telegram_chat_id"):
         env_updates["TELEGRAM_CHAT_ID"] = state["telegram_chat_id"]
 
+    # Only write Blink keys if provided
+    if state.get("blink_username"):
+        env_updates["BLINK_USERNAME"] = state["blink_username"]
+    if state.get("blink_password"):
+        env_updates["BLINK_PASSWORD"] = state["blink_password"]
+    if state.get("blink_camera_name"):
+        env_updates["BLINK_CAMERA_NAME"] = state["blink_camera_name"]
+
     # Validate minimum required fields are present
     missing = [k for k in ["RING_USERNAME", "RING_PASSWORD", "SWITCHBOT_TOKEN",
                             "SWITCHBOT_SECRET", "SWITCHBOT_DEVICE_ID",
                             "DASHBOARD_PASSWORD"] if not env_updates.get(k)]
     if missing:
-        return templates.TemplateResponse("step_6.html", {
-            "request": request, "current_step": 6,
+        return templates.TemplateResponse("step_7.html", {
+            "request": request, "current_step": 7,
             "error": f"Missing required configuration: {', '.join(missing)}",
             **state,
         })
@@ -403,6 +454,62 @@ async def validate_telegram(request: Request):
         return JSONResponse({"ok": False, "error": "Invalid bot token."})
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)})
+
+
+@router.post("/api/validate-blink")
+async def validate_blink(request: Request):
+    """Test Blink credentials. Stores temp BlinkClient on app.state for 2FA flow."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Invalid request body."})
+
+    username = body.get("username", "").strip()
+    password = body.get("password", "").strip()
+
+    if not username or not password:
+        return JSONResponse({"ok": False, "error": "Email and password are required."})
+
+    try:
+        from blink_client import BlinkClient
+        blink = BlinkClient(username, password)
+        await blink.authenticate()
+
+        if blink.needs_2fa:
+            # Store the instance so 2FA can be completed
+            request.app.state.wizard_blink = blink
+            return JSONResponse({"ok": True, "needs_2fa": True})
+
+        # Fully authenticated — no need to keep the instance
+        await blink.stop()
+        return JSONResponse({"ok": True, "needs_2fa": False})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": f"Blink login failed: {e}"})
+
+
+@router.post("/api/blink-2fa")
+async def validate_blink_2fa(request: Request):
+    """Submit Blink 2FA code using the stored wizard BlinkClient."""
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"ok": False, "error": "Invalid request body."})
+
+    code = body.get("code", "").strip()
+    if not code:
+        return JSONResponse({"ok": False, "error": "Verification code is required."})
+
+    blink = getattr(request.app.state, "wizard_blink", None)
+    if blink is None:
+        return JSONResponse({"ok": False, "error": "No pending Blink auth. Test connection first."})
+
+    success = await blink.submit_2fa(code)
+    if not success:
+        return JSONResponse({"ok": False, "error": "Invalid verification code. Check your email and try again."})
+
+    await blink.stop()
+    request.app.state.wizard_blink = None
+    return JSONResponse({"ok": True})
 
 
 @router.post("/api/install-autostart")

@@ -135,12 +135,33 @@ async def lifespan(app: FastAPI):
         )
         command_task = asyncio.create_task(command_handler.run())
 
+    # --- Initialize BlinkClient (optional — standalone camera feed) ---
+    blink = None
+    if Config.BLINK_USERNAME and Config.BLINK_PASSWORD:
+        from blink_client import BlinkClient
+        logger.info("Initializing Blink camera client...")
+        blink = BlinkClient(
+            Config.BLINK_USERNAME,
+            Config.BLINK_PASSWORD,
+            Config.BLINK_CAMERA_NAME,
+        )
+        try:
+            await blink.authenticate()
+            if blink.needs_2fa:
+                logger.info("Blink awaiting 2FA — submit code via dashboard")
+        except Exception:
+            logger.exception("Blink authentication failed — camera feed disabled")
+            blink = None
+    else:
+        logger.info("BLINK_USERNAME/BLINK_PASSWORD not set — Blink camera feed disabled")
+
     # Expose services on app.state for dashboard routes
     app.state.store = store
     app.state.alerter = alerter
     app.state.switchbot = switchbot
     app.state.ring = ring
     app.state.recognizer = recognizer
+    app.state.blink = blink
 
     yield
 
@@ -162,6 +183,9 @@ async def lifespan(app: FastAPI):
 
     if alerter is not None:
         await alerter.shutdown()
+
+    if blink is not None:
+        await blink.stop()
 
     detector.shutdown()
     await store.close()

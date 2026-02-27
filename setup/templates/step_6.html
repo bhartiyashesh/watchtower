@@ -1,56 +1,165 @@
 {% extends "setup_base.html" %}
-{% block title %}WatchTower Setup — Review & Launch{% endblock %}
+{% block title %}WatchTower Setup — Blink Camera{% endblock %}
 
 {% block step_content %}
 <div class="card">
-    <h1>Review & Launch</h1>
-    <p class="subtitle">Everything looks good. Review your configuration and launch WatchTower.</p>
+    <h1>Blink Camera <span style="font-size: 0.8rem; color: var(--text-secondary); font-weight: 400;">(Optional)</span></h1>
+    <p class="subtitle">Add a Blink surveillance camera to view live snapshots on your dashboard.</p>
 
     <div class="error-box" id="error-box">{{ error or '' }}</div>
 
-    <div style="margin-bottom: 1.5rem;">
-        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
-                <span style="color: var(--text-secondary); font-size: 0.88rem;">Ring Account</span>
-                <span style="font-size: 0.88rem;">{{ ring_username }}</span>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
-                <span style="color: var(--text-secondary); font-size: 0.88rem;">SwitchBot Lock</span>
-                <span style="font-size: 0.88rem;">{{ switchbot_device_id }}</span>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
-                <span style="color: var(--text-secondary); font-size: 0.88rem;">Dashboard User</span>
-                <span style="font-size: 0.88rem;">{{ dashboard_username }}</span>
-            </div>
-
-            <div style="display: flex; justify-content: space-between; padding: 0.6rem 0; border-bottom: 1px solid var(--border-color);">
-                <span style="color: var(--text-secondary); font-size: 0.88rem;">Telegram Alerts</span>
-                {% if telegram_enabled %}
-                <span style="font-size: 0.88rem; color: var(--accent-green);">Enabled</span>
-                {% else %}
-                <span style="font-size: 0.88rem; color: var(--text-secondary);">Disabled</span>
-                {% endif %}
-            </div>
+    <form method="POST" action="/setup/step/6" id="blink-form">
+        <div class="form-group">
+            <label for="blink_username">Blink Email</label>
+            <input type="email" id="blink_username" name="blink_username"
+                   value="{{ blink_username or '' }}" placeholder="you@example.com">
+            <p class="hint">
+                The email you use to log in at
+                <a href="https://blinkforhome.com" target="_blank" rel="noopener">blinkforhome.com</a>.
+            </p>
         </div>
-    </div>
 
-    <form method="POST" action="/setup/step/6" id="launch-form">
+        <div class="form-group">
+            <label for="blink_password">Blink Password</label>
+            <input type="password" id="blink_password" name="blink_password"
+                   value="{{ blink_password or '' }}" placeholder="Your Blink password">
+        </div>
+
+        <div class="form-group">
+            <label for="blink_camera_name">Camera Name <span style="color: var(--text-secondary); font-weight: 400;">(optional)</span></label>
+            <input type="text" id="blink_camera_name" name="blink_camera_name"
+                   value="{{ blink_camera_name or '' }}" placeholder="e.g. Backyard">
+            <p class="hint">Leave blank to use the first camera on your account.</p>
+        </div>
+
+        <div style="margin-top: 0.75rem;">
+            <button type="button" class="btn btn-discover" id="test-btn" onclick="testBlink()">
+                Test Connection
+            </button>
+            <span id="test-result" style="margin-left: 0.75rem; font-size: 0.85rem;"></span>
+        </div>
+
+        <!-- Inline 2FA verification (shown when needed) -->
+        <div id="blink-2fa-section" style="display: none; margin-top: 1.25rem; padding: 1rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 8px;">
+            <label for="blink_2fa_code" style="display: block; font-size: 0.85rem; font-weight: 500; color: var(--text-secondary); margin-bottom: 0.35rem;">
+                Verification Code
+            </label>
+            <p class="hint" style="margin-bottom: 0.5rem;">Blink sent a PIN to your email. Enter it below.</p>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <input type="text" id="blink_2fa_code" maxlength="6" placeholder="Pin code"
+                       inputmode="numeric" autocomplete="one-time-code"
+                       style="width: 10rem; padding: 0.6rem 0.85rem; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 1rem; text-align: center; letter-spacing: 0.2em;">
+                <button type="button" class="btn btn-primary" id="verify-btn" onclick="verifyBlink2fa()">
+                    Verify
+                </button>
+            </div>
+            <span id="verify-result" style="display: block; margin-top: 0.5rem; font-size: 0.85rem;"></span>
+        </div>
+
         <div class="btn-row">
             <a href="/setup/step/5" class="btn btn-secondary">&larr; Back</a>
-            <button type="submit" class="btn btn-success" id="launch-btn">
-                Launch WatchTower &rarr;
-            </button>
+            <div style="display: flex; gap: 0.75rem;">
+                <button type="submit" name="action" value="skip" class="btn btn-skip">
+                    Skip
+                </button>
+                <button type="submit" name="action" value="save" class="btn btn-primary" id="submit-btn">
+                    Next &rarr;
+                </button>
+            </div>
         </div>
     </form>
 </div>
 
 <script>
-document.getElementById('launch-form').addEventListener('submit', function() {
-    var btn = document.getElementById('launch-btn');
+async function testBlink() {
+    var btn = document.getElementById('test-btn');
+    var result = document.getElementById('test-result');
+    var errorBox = document.getElementById('error-box');
+    var username = document.getElementById('blink_username').value.trim();
+    var password = document.getElementById('blink_password').value.trim();
+
+    if (!username || !password) {
+        errorBox.textContent = 'Enter your email and password first.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Launching...';
+    btn.innerHTML = '<span class="spinner"></span> Connecting...';
+    result.textContent = '';
+    errorBox.style.display = 'none';
+
+    try {
+        var resp = await fetch('/setup/api/validate-blink', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username: username, password: password})
+        });
+        var data = await resp.json();
+
+        if (data.ok) {
+            if (data.needs_2fa) {
+                result.innerHTML = '<span style="color: var(--accent-orange);">2FA required — check your email</span>';
+                document.getElementById('blink-2fa-section').style.display = 'block';
+                document.getElementById('blink_2fa_code').focus();
+            } else {
+                result.innerHTML = '<span style="color: var(--accent-green);">Connected successfully</span>';
+                document.getElementById('blink-2fa-section').style.display = 'none';
+            }
+        } else {
+            result.innerHTML = '<span style="color: #ff6666;">' + (data.error || 'Connection failed') + '</span>';
+        }
+    } catch (e) {
+        result.innerHTML = '<span style="color: #ff6666;">Network error. Please try again.</span>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Test Connection';
+}
+
+async function verifyBlink2fa() {
+    var btn = document.getElementById('verify-btn');
+    var result = document.getElementById('verify-result');
+    var code = document.getElementById('blink_2fa_code').value.trim();
+
+    if (!code) {
+        result.innerHTML = '<span style="color: #ff6666;">Enter the verification code.</span>';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Verifying...';
+    result.textContent = '';
+
+    try {
+        var resp = await fetch('/setup/api/blink-2fa', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({code: code})
+        });
+        var data = await resp.json();
+
+        if (data.ok) {
+            result.innerHTML = '<span style="color: var(--accent-green);">Verified — Blink camera connected</span>';
+            document.getElementById('test-result').innerHTML = '<span style="color: var(--accent-green);">Connected successfully</span>';
+            document.getElementById('blink-2fa-section').style.display = 'none';
+        } else {
+            result.innerHTML = '<span style="color: #ff6666;">' + (data.error || 'Invalid code') + '</span>';
+        }
+    } catch (e) {
+        result.innerHTML = '<span style="color: #ff6666;">Network error. Please try again.</span>';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Verify';
+}
+
+// Allow Enter key in 2FA input
+document.getElementById('blink_2fa_code').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        verifyBlink2fa();
+    }
 });
 </script>
 {% endblock %}

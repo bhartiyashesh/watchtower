@@ -43,6 +43,11 @@ class Config:
     DASHBOARD_USERNAME: str = os.getenv("DASHBOARD_USERNAME", "admin")
     DASHBOARD_PASSWORD: str = os.getenv("DASHBOARD_PASSWORD", "")
 
+    # Blink Camera (optional — standalone surveillance camera feed)
+    BLINK_USERNAME: str = os.getenv("BLINK_USERNAME", "")
+    BLINK_PASSWORD: str = os.getenv("BLINK_PASSWORD", "")
+    BLINK_CAMERA_NAME: str = os.getenv("BLINK_CAMERA_NAME", "")
+
     # Analytics (Phase 6) — fallback coordinates when browser geolocation denied
     ANALYTICS_LATITUDE: str = os.getenv("ANALYTICS_LATITUDE", "37.7749")
     ANALYTICS_LONGITUDE: str = os.getenv("ANALYTICS_LONGITUDE", "-122.4194")
@@ -94,5 +99,8 @@ class Config:
         cls.TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
         cls.DASHBOARD_USERNAME = os.getenv("DASHBOARD_USERNAME", "admin")
         cls.DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
+        cls.BLINK_USERNAME = os.getenv("BLINK_USERNAME", "")
+        cls.BLINK_PASSWORD = os.getenv("BLINK_PASSWORD", "")
+        cls.BLINK_CAMERA_NAME = os.getenv("BLINK_CAMERA_NAME", "")
         cls.ANALYTICS_LATITUDE = os.getenv("ANALYTICS_LATITUDE", "37.7749")
         cls.ANALYTICS_LONGITUDE = os.getenv("ANALYTICS_LONGITUDE", "-122.4194")
