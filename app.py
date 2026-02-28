@@ -240,6 +240,19 @@ async def lifespan(app: FastAPI):
     else:
         logger.info("BLINK_USERNAME/BLINK_PASSWORD not set — Blink camera feed disabled")
 
+    # --- Start Blink motion monitoring loop (if Blink is authenticated) ---
+    blink_monitor_task = None
+    if blink is not None and not blink.needs_2fa and blink._camera is not None:
+        from blink_monitor import blink_polling_loop
+        logger.info(
+            "Starting Blink polling loop (interval=%ds, cooldown=%ds)...",
+            Config.BLINK_POLL_INTERVAL,
+            Config.BLINK_MOTION_COOLDOWN,
+        )
+        blink_monitor_task = asyncio.create_task(
+            blink_polling_loop(blink, detector, recognizer, store, alerter)
+        )
+
     # Expose services on app.state for dashboard routes
     app.state.store = store
     app.state.alerter = alerter
@@ -271,6 +284,13 @@ async def lifespan(app: FastAPI):
 
     if alerter is not None:
         await alerter.shutdown()
+
+    if blink_monitor_task is not None:
+        blink_monitor_task.cancel()
+        try:
+            await blink_monitor_task
+        except asyncio.CancelledError:
+            pass
 
     if blink is not None:
         await blink.stop()

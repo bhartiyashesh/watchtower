@@ -436,6 +436,38 @@ async def api_blink_2fa(request: Request) -> JSONResponse:
     return JSONResponse({"status": "ok", "message": "Blink camera verified"})
 
 
+@router.get("/api/blink-arm-status")
+async def api_blink_arm_status(request: Request) -> JSONResponse:
+    """Return current Blink camera arm state and motion detection status."""
+    blink = getattr(request.app.state, "blink", None)
+    if blink is None or blink.needs_2fa or blink._camera is None:
+        raise HTTPException(status_code=404, detail="Blink camera not available")
+
+    armed = blink._camera.arm
+    # blinkpy returns None before first refresh — treat as unknown/false
+    if armed is None:
+        armed = False
+
+    return JSONResponse({
+        "armed": bool(armed),
+        "motion_detected": bool(blink._camera.motion_detected or False),
+    })
+
+
+@router.post("/api/blink-arm")
+async def api_blink_arm(request: Request) -> JSONResponse:
+    """Arm or disarm the Blink camera for motion detection."""
+    blink = getattr(request.app.state, "blink", None)
+    if blink is None or blink.needs_2fa or blink._camera is None:
+        raise HTTPException(status_code=404, detail="Blink camera not available")
+
+    body = await request.json()
+    armed = body.get("armed", True)
+
+    await blink._camera.async_arm(armed)
+    return JSONResponse({"armed": armed})
+
+
 @router.get("/api/blink-live")
 async def api_blink_live(request: Request):
     """Stream live MJPEG video from the Blink camera.

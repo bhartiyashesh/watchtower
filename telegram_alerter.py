@@ -61,6 +61,7 @@ class TelegramAlerter:
         # alerts never suppress each other (TELE-04 requirement)
         self._last_stranger_alert: float = 0.0
         self._last_unlock_alert: float = 0.0
+        self._last_blink_motion_alert: float = 0.0
 
         # Mute support — monotonic timestamp until which alerts are suppressed
         self._muted_until: float = 0.0
@@ -159,6 +160,33 @@ class TelegramAlerter:
                 )
                 return
             self._last_unlock_alert = now
+        # Lock is released BEFORE the HTTP call — never hold lock across I/O
+        await self._send_photo(thumbnail_path, caption)
+
+    async def alert_blink_motion(
+        self, thumbnail_path: str | None, caption: str
+    ) -> None:
+        """
+        Send a Blink motion alert for non-person detections (cars, animals, packages).
+
+        Uses its own coalescing timestamp so it doesn't interfere with Ring's
+        stranger or unlock alert types.
+
+        Args:
+            thumbnail_path: Absolute path to a JPEG thumbnail, or None.
+            caption: Human-readable alert caption.
+        """
+        if self.is_muted:
+            logger.debug("Blink motion alert suppressed (muted)")
+            return
+        async with self._lock:
+            now = time.monotonic()
+            if now - self._last_blink_motion_alert < COALESCE_SECONDS:
+                logger.debug(
+                    "Blink motion alert suppressed (within coalesce window)"
+                )
+                return
+            self._last_blink_motion_alert = now
         # Lock is released BEFORE the HTTP call — never hold lock across I/O
         await self._send_photo(thumbnail_path, caption)
 

@@ -82,6 +82,15 @@
             </div>
         </div>
 
+        <!-- Arm/Disarm toggle (shown after successful auth) -->
+        <div id="blink-arm-row" style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; {% if blink_needs_2fa %}display: none;{% endif %}">
+            <button id="blink-arm-btn" class="lock-btn lock-btn-arm" onclick="toggleBlinkArm()" title="Toggle motion detection">
+                <span id="blink-arm-icon">&#x1f6e1;</span>
+                <span id="blink-arm-label">Loading...</span>
+            </button>
+            <span id="blink-arm-msg" class="stat-sub"></span>
+        </div>
+
         <!-- Snapshot view (shown after successful auth) -->
         <div id="blink-snapshot-view" style="{% if blink_needs_2fa %}display: none;{% endif %}">
             <div class="blink-snapshot-wrap" style="margin-top: 0.5rem; position: relative;">
@@ -196,6 +205,27 @@
     .blink-mode-active {
         background: rgba(68, 204, 136, 0.4) !important;
         border-color: var(--accent-green) !important;
+    }
+    .lock-btn-arm {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.5);
+        border: 1px solid rgba(255,255,255,0.12);
+    }
+    .lock-btn-arm:hover:not(:disabled) {
+        background: rgba(255,255,255,0.1);
+    }
+    .lock-btn-arm.armed {
+        background: rgba(68, 204, 136, 0.2);
+        color: var(--accent-green);
+        border-color: rgba(68, 204, 136, 0.3);
+    }
+    .lock-btn-arm.disarmed {
+        background: rgba(255,255,255,0.06);
+        color: rgba(255,255,255,0.5);
+        border-color: rgba(255,255,255,0.12);
     }
     .lock-btn-analyze {
         background: rgba(186, 85, 211, 0.2);
@@ -414,6 +444,74 @@ async function analyzeBlink() {
     } finally {
         btn.disabled = false;
     }
+}
+
+// Blink arm/disarm toggle
+let blinkArmed = null;
+
+function updateArmUI(armed) {
+    blinkArmed = armed;
+    const btn = document.getElementById('blink-arm-btn');
+    const label = document.getElementById('blink-arm-label');
+    if (!btn || !label) return;
+
+    if (armed) {
+        btn.className = 'lock-btn lock-btn-arm armed';
+        label.textContent = 'Armed';
+    } else {
+        btn.className = 'lock-btn lock-btn-arm disarmed';
+        label.textContent = 'Disarmed';
+    }
+}
+
+async function fetchBlinkArmStatus() {
+    try {
+        const resp = await fetch('/dashboard/api/blink-arm-status', { credentials: 'include' });
+        if (!resp.ok) {
+            updateArmUI(false);
+            document.getElementById('blink-arm-msg').textContent = 'Status unavailable';
+            return;
+        }
+        const data = await resp.json();
+        updateArmUI(!!data.armed);
+    } catch (e) {
+        updateArmUI(false);
+        document.getElementById('blink-arm-msg').textContent = 'Status unavailable';
+    }
+}
+
+async function toggleBlinkArm() {
+    const btn = document.getElementById('blink-arm-btn');
+    const msg = document.getElementById('blink-arm-msg');
+    if (!btn || blinkArmed === null) return;
+
+    const newState = !blinkArmed;
+    btn.disabled = true;
+    msg.textContent = newState ? 'Arming...' : 'Disarming...';
+
+    try {
+        const resp = await fetch('/dashboard/api/blink-arm', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ armed: newState }),
+        });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || 'Command failed');
+        }
+        updateArmUI(newState);
+        msg.textContent = newState ? 'Camera armed' : 'Camera disarmed';
+    } catch (e) {
+        msg.textContent = 'Error: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+// Fetch arm status on load
+if (document.getElementById('blink-arm-btn')) {
+    fetchBlinkArmStatus();
 }
 
 // Auto-load Blink snapshot on page load (only if not waiting for 2FA)

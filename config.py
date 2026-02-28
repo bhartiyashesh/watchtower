@@ -49,6 +49,8 @@ class Config:
     BLINK_USERNAME: str = os.getenv("BLINK_USERNAME", "")
     BLINK_PASSWORD: str = os.getenv("BLINK_PASSWORD", "")
     BLINK_CAMERA_NAME: str = os.getenv("BLINK_CAMERA_NAME", "")
+    BLINK_POLL_INTERVAL: int = int(os.getenv("BLINK_POLL_INTERVAL", "30"))
+    BLINK_MOTION_COOLDOWN: int = int(os.getenv("BLINK_MOTION_COOLDOWN", "60"))
 
     # Analytics (Phase 6) — fallback coordinates when browser geolocation denied
     ANALYTICS_LATITUDE: str = os.getenv("ANALYTICS_LATITUDE", "37.7749")
@@ -104,5 +106,7 @@ class Config:
         cls.BLINK_USERNAME = os.getenv("BLINK_USERNAME", "")
         cls.BLINK_PASSWORD = os.getenv("BLINK_PASSWORD", "")
         cls.BLINK_CAMERA_NAME = os.getenv("BLINK_CAMERA_NAME", "")
+        cls.BLINK_POLL_INTERVAL = int(os.getenv("BLINK_POLL_INTERVAL", "30"))
+        cls.BLINK_MOTION_COOLDOWN = int(os.getenv("BLINK_MOTION_COOLDOWN", "60"))
         cls.ANALYTICS_LATITUDE = os.getenv("ANALYTICS_LATITUDE", "37.7749")
         cls.ANALYTICS_LONGITUDE = os.getenv("ANALYTICS_LONGITUDE", "-122.4194")
