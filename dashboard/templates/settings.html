@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - WatchTower{% endblock %}
+
+{% block content %}
+<style>
+    .settings-header {
+        margin-bottom: 1.5rem;
+    }
+    .settings-header h1 { margin-bottom: 0.25rem; }
+    .settings-header p { color: var(--text-secondary); font-size: 0.9rem; margin: 0; }
+
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+
+    .device-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .device-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        overflow: hidden;
+        transition: border-color 0.15s;
+    }
+    .device-card:hover { border-color: rgba(255, 255, 255, 0.12); }
+
+    .device-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+    }
+    .device-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    .device-name {
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    .device-account {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .badge-connected {
+        background: rgba(68, 204, 136, 0.15);
+        color: var(--accent-green);
+        border: 1px solid rgba(68, 204, 136, 0.25);
+    }
+    .badge-unconfigured {
+        background: rgba(136, 136, 160, 0.12);
+        color: var(--text-secondary);
+        border: 1px solid rgba(136, 136, 160, 0.2);
+    }
+
+    .device-actions {
+        padding: 0 1.25rem 1rem;
+    }
+
+    .btn {
+        padding: 0.45rem 1rem;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+    .btn-outline {
+        background: transparent;
+        color: var(--accent-blue);
+        border: 1px solid rgba(68, 136, 255, 0.3);
+    }
+    .btn-outline:hover { background: rgba(68, 136, 255, 0.1); }
+    .btn-primary {
+        background: var(--accent-blue);
+        color: #fff;
+    }
+    .btn-primary:hover { background: #5599ff; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+    }
+    .btn-secondary:hover { background: rgba(255, 255, 255, 0.12); }
+    .btn-test {
+        background: rgba(68, 204, 136, 0.12);
+        color: var(--accent-green);
+        border: 1px solid rgba(68, 204, 136, 0.25);
+    }
+    .btn-test:hover { background: rgba(68, 204, 136, 0.2); }
+    .btn-sm { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+    .edit-form {
+        display: none;
+        padding: 0 1.25rem 1.25rem;
+        border-top: 1px solid var(--border-color);
+    }
+    .edit-form.open { display: block; }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-bottom: 0.75rem;
+    }
+    .form-group:last-of-type { margin-bottom: 1rem; }
+    .form-group label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .form-group input {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .form-group input:focus {
+        outline: none;
+        border-color: var(--accent-blue);
+    }
+    .form-hint {
+        font-size: 0.72rem;
+        color: var(--text-secondary);
+        margin-top: 0.15rem;
+    }
+    .form-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    .form-message {
+        margin-top: 0.75rem;
+        font-size: 0.82rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        display: none;
+    }
+    .form-message.error {
+        display: block;
+        background: rgba(255, 68, 68, 0.1);
+        border: 1px solid rgba(255, 68, 68, 0.2);
+        color: #ff6666;
+    }
+    .form-message.success {
+        display: block;
+        background: rgba(68, 204, 136, 0.1);
+        border: 1px solid rgba(68, 204, 136, 0.2);
+        color: var(--accent-green);
+    }
+    .form-message.warning {
+        display: block;
+        background: rgba(255, 136, 68, 0.1);
+        border: 1px solid rgba(255, 136, 68, 0.2);
+        color: var(--accent-orange);
+    }
+
+    .general-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        padding: 1.25rem 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .general-card h3 {
+        margin: 0 0 1rem;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    .general-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 0.75rem 1.25rem;
+    }
+</style>
+
+<div class="settings-header">
+    <h1>Settings</h1>
+    <p>Manage device connections and general configuration</p>
+</div>
+
+<!-- Devices Section -->
+<div class="section-title">Devices</div>
+<div class="device-grid">
+
+    <!-- Ring Card -->
+    <div class="device-card" id="card-ring">
+        <div class="device-header">
+            <div class="device-info">
+                <span class="device-name">Ring Doorbell</span>
+                {% if config.RING_USERNAME %}
+                    <span class="device-account">{{ config.RING_USERNAME }}</span>
+                {% else %}
+                    <span class="device-account">Not configured</span>
+                {% endif %}
+            </div>
+            {% if config.RING_USERNAME and config.RING_PASSWORD %}
+                <span class="badge badge-connected">Connected</span>
+            {% else %}
+                <span class="badge badge-unconfigured">Not Configured</span>
+            {% endif %}
+        </div>
+        <div class="device-actions">
+            <button class="btn btn-outline btn-sm" onclick="toggleEdit('ring')">Edit</button>
+        </div>
+        <div class="edit-form" id="edit-ring">
+            <div style="padding-top: 1rem;"></div>
+            <div class="form-group">
+                <label>Ring Email / Username</label>
+                <input type="text" id="ring-username" value="{{ config.RING_USERNAME }}" placeholder="email@example.com">
+            </div>
+            <div class="form-group">
+                <label>Ring Password</label>
+                <input type="password" id="ring-password" placeholder="Enter new password">
+                <span class="form-hint">Leave blank to keep current password</span>
+            </div>
+            <div class="form-buttons">
+                <button class="btn btn-primary btn-sm" onclick="saveDevice('ring')">Save</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleEdit('ring')">Cancel</button>
+            </div>
+            <div class="form-message" id="msg-ring"></div>
+        </div>
+    </div>
+
+    <!-- SwitchBot Card -->
+    <div class="device-card" id="card-switchbot">
+        <div class="device-header">
+            <div class="device-info">
+                <span class="device-name">SwitchBot Lock</span>
+                {% if config.SWITCHBOT_DEVICE_ID %}
+                    <span class="device-account">Device: {{ config.SWITCHBOT_DEVICE_ID[:8] }}...</span>
+                {% else %}
+                    <span class="device-account">Not configured</span>
+                {% endif %}
+            </div>
+            {% if config.SWITCHBOT_TOKEN and config.SWITCHBOT_SECRET and config.SWITCHBOT_DEVICE_ID %}
+                <span class="badge badge-connected">Connected</span>
+            {% else %}
+                <span class="badge badge-unconfigured">Not Configured</span>
+            {% endif %}
+        </div>
+        <div class="device-actions">
+            <button class="btn btn-outline btn-sm" onclick="toggleEdit('switchbot')">Edit</button>
+        </div>
+        <div class="edit-form" id="edit-switchbot">
+            <div style="padding-top: 1rem;"></div>
+            <div class="form-group">
+                <label>SwitchBot Token</label>
+                <input type="password" id="switchbot-token" placeholder="Enter token">
+                <span class="form-hint">Leave blank to keep current value</span>
+            </div>
+            <div class="form-group">
+                <label>SwitchBot Secret</label>
+                <input type="password" id="switchbot-secret" placeholder="Enter secret">
+                <span class="form-hint">Leave blank to keep current value</span>
+            </div>
+            <div class="form-group">
+                <label>Device ID</label>
+                <input type="text" id="switchbot-device-id" value="{{ config.SWITCHBOT_DEVICE_ID }}" placeholder="e.g. ABCDEF123456">
+            </div>
+            <div class="form-buttons">
+                <button class="btn btn-test btn-sm" onclick="testSwitchBot()">Test Connection</button>
+                <button class="btn btn-primary btn-sm" onclick="saveDevice('switchbot')">Save</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleEdit('switchbot')">Cancel</button>
+            </div>
+            <div class="form-message" id="msg-switchbot"></div>
+        </div>
+    </div>
+
+    <!-- Blink Card — multi-step: Login → 2FA → Camera select → Save -->
+    <div class="device-card" id="card-blink">
+        <div class="device-header">
+            <div class="device-info">
+                <span class="device-name">Blink Camera</span>
+                {% if config.BLINK_USERNAME %}
+                    <span class="device-account">{{ config.BLINK_USERNAME }}{% if config.BLINK_CAMERA_NAME %} / {{ config.BLINK_CAMERA_NAME }}{% endif %}</span>
+                {% else %}
+                    <span class="device-account">Not configured</span>
+                {% endif %}
+            </div>
+            {% if config.BLINK_USERNAME and config.BLINK_PASSWORD %}
+                <span class="badge badge-connected">Connected</span>
+            {% else %}
+                <span class="badge badge-unconfigured">Not Configured</span>
+            {% endif %}
+        </div>
+        <div class="device-actions">
+            <button class="btn btn-outline btn-sm" onclick="toggleEdit('blink')">Edit</button>
+        </div>
+        <div class="edit-form" id="edit-blink">
+            <div style="padding-top: 1rem;"></div>
+
+            <!-- Step 1: Credentials -->
+            <div id="blink-step-login">
+                <div class="form-group">
+                    <label>Blink Email</label>
+                    <input type="text" id="blink-username" value="{{ config.BLINK_USERNAME }}" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label>Blink Password</label>
+                    <input type="password" id="blink-password" placeholder="Enter password">
+                    <span class="form-hint">Required to authenticate with Blink servers</span>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-test btn-sm" id="blink-login-btn" onclick="blinkLogin()">Log In & Verify</button>
+                    <button class="btn btn-secondary btn-sm" onclick="blinkCancel()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Step 2: 2FA code -->
+            <div id="blink-step-2fa" style="display:none;">
+                <div class="form-group">
+                    <label>Verification Code</label>
+                    <input type="text" id="blink-2fa-code" placeholder="Check your email for the code" autocomplete="one-time-code">
+                    <span class="form-hint">Blink sent a verification code to your email</span>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-primary btn-sm" id="blink-2fa-btn" onclick="blinkSubmit2FA()">Verify Code</button>
+                    <button class="btn btn-secondary btn-sm" onclick="blinkCancel()">Cancel</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Camera picker -->
+            <div id="blink-step-cameras" style="display:none;">
+                <div class="form-group">
+                    <label>Select Camera</label>
+                    <select id="blink-camera-select" style="padding:0.5rem 0.75rem;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-primary);color:var(--text-primary);font-size:0.85rem;width:100%;box-sizing:border-box;">
+                    </select>
+                    <span class="form-hint">Choose which camera to use for the live feed</span>
+                </div>
+                <div class="form-buttons">
+                    <button class="btn btn-primary btn-sm" onclick="blinkSave()">Save</button>
+                    <button class="btn btn-secondary btn-sm" onclick="blinkCancel()">Cancel</button>
+                </div>
+            </div>
+
+            <div class="form-message" id="msg-blink"></div>
+        </div>
+    </div>
+
+    <!-- Telegram Card -->
+    <div class="device-card" id="card-telegram">
+        <div class="device-header">
+            <div class="device-info">
+                <span class="device-name">Telegram Alerts</span>
+                {% if config.TELEGRAM_CHAT_ID %}
+                    <span class="device-account">Chat: {{ config.TELEGRAM_CHAT_ID }}</span>
+                {% else %}
+                    <span class="device-account">Not configured</span>
+                {% endif %}
+            </div>
+            {% if config.TELEGRAM_BOT_TOKEN and config.TELEGRAM_CHAT_ID %}
+                <span class="badge badge-connected">Connected</span>
+            {% else %}
+                <span class="badge badge-unconfigured">Not Configured</span>
+            {% endif %}
+        </div>
+        <div class="device-actions">
+            <button class="btn btn-outline btn-sm" onclick="toggleEdit('telegram')">Edit</button>
+        </div>
+        <div class="edit-form" id="edit-telegram">
+            <div style="padding-top: 1rem;"></div>
+            <div class="form-group">
+                <label>Bot Token</label>
+                <input type="password" id="telegram-bot-token" placeholder="Enter bot token">
+                <span class="form-hint">Leave blank to keep current value</span>
+            </div>
+            <div class="form-group">
+                <label>Chat ID</label>
+                <input type="text" id="telegram-chat-id" value="{{ config.TELEGRAM_CHAT_ID }}" placeholder="e.g. 123456789">
+            </div>
+            <div class="form-buttons">
+                <button class="btn btn-test btn-sm" onclick="testTelegram()">Test Connection</button>
+                <button class="btn btn-primary btn-sm" onclick="saveDevice('telegram')">Save</button>
+                <button class="btn btn-secondary btn-sm" onclick="toggleEdit('telegram')">Cancel</button>
+            </div>
+            <div class="form-message" id="msg-telegram"></div>
+        </div>
+    </div>
+
+</div>
+
+<!-- General Settings Section -->
+<div class="section-title">General</div>
+<div class="general-card">
+    <h3>System Configuration</h3>
+    <div class="general-grid">
+        <div class="form-group">
+            <label>Poll Interval (seconds)</label>
+            <input type="number" id="gen-poll-interval" value="{{ config.POLL_INTERVAL }}" min="1" max="300">
+        </div>
+        <div class="form-group">
+            <label>Unlock Cooldown (seconds)</label>
+            <input type="number" id="gen-unlock-cooldown" value="{{ config.UNLOCK_COOLDOWN }}" min="5" max="600">
+        </div>
+        <div class="form-group">
+            <label>Face Match Tolerance</label>
+            <input type="number" id="gen-face-tolerance" value="{{ config.FACE_MATCH_TOLERANCE }}" min="0.1" max="1.0" step="0.05">
+        </div>
+        <div class="form-group">
+            <label>Dashboard Username</label>
+            <input type="text" id="gen-dash-username" value="{{ config.DASHBOARD_USERNAME }}">
+        </div>
+        <div class="form-group">
+            <label>Dashboard Password</label>
+            <input type="password" id="gen-dash-password" placeholder="Enter new password">
+            <span class="form-hint">Leave blank to keep current. Changing may require re-login.</span>
+        </div>
+        <div class="form-group">
+            <label>Latitude</label>
+            <input type="text" id="gen-latitude" value="{{ config.ANALYTICS_LATITUDE }}">
+        </div>
+        <div class="form-group">
+            <label>Longitude</label>
+            <input type="text" id="gen-longitude" value="{{ config.ANALYTICS_LONGITUDE }}">
+        </div>
+    </div>
+    <div style="margin-top: 1rem;">
+        <button class="btn btn-primary btn-sm" onclick="saveGeneral()">Save General Settings</button>
+    </div>
+    <div class="form-message" id="msg-general"></div>
+</div>
+
+<script>
+function toggleEdit(section) {
+    const form = document.getElementById('edit-' + section);
+    form.classList.toggle('open');
+    // Clear message when toggling
+    const msg = document.getElementById('msg-' + section);
+    if (msg) { msg.className = 'form-message'; msg.textContent = ''; }
+}
+
+function showMsg(section, text, type) {
+    const msg = document.getElementById('msg-' + section);
+    msg.textContent = text;
+    msg.className = 'form-message ' + type;
+}
+
+async function saveDevice(section) {
+    const values = {};
+
+    if (section === 'ring') {
+        const username = document.getElementById('ring-username').value.trim();
+        const password = document.getElementById('ring-password').value;
+        if (username) values.RING_USERNAME = username;
+        if (password) values.RING_PASSWORD = password;
+    } else if (section === 'switchbot') {
+        const token = document.getElementById('switchbot-token').value;
+        const secret = document.getElementById('switchbot-secret').value;
+        const deviceId = document.getElementById('switchbot-device-id').value.trim();
+        if (token) values.SWITCHBOT_TOKEN = token;
+        if (secret) values.SWITCHBOT_SECRET = secret;
+        if (deviceId) values.SWITCHBOT_DEVICE_ID = deviceId;
+    } else if (section === 'telegram') {
+        const token = document.getElementById('telegram-bot-token').value;
+        const chatId = document.getElementById('telegram-chat-id').value.trim();
+        if (token) values.TELEGRAM_BOT_TOKEN = token;
+        if (chatId) values.TELEGRAM_CHAT_ID = chatId;
+    }
+
+    if (Object.keys(values).length === 0) {
+        showMsg(section, 'No changes to save.', 'warning');
+        return;
+    }
+
+    try {
+        const resp = await fetch('/dashboard/api/settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ section, values }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            showMsg(section, data.message, data.restart_needed ? 'warning' : 'success');
+        } else {
+            showMsg(section, data.detail || 'Save failed.', 'error');
+        }
+    } catch (e) {
+        showMsg(section, 'Network error: ' + e.message, 'error');
+    }
+}
+
+async function saveGeneral() {
+    const values = {};
+    const pollInterval = document.getElementById('gen-poll-interval').value.trim();
+    const unlockCooldown = document.getElementById('gen-unlock-cooldown').value.trim();
+    const faceTolerance = document.getElementById('gen-face-tolerance').value.trim();
+    const dashUsername = document.getElementById('gen-dash-username').value.trim();
+    const dashPassword = document.getElementById('gen-dash-password').value;
+    const latitude = document.getElementById('gen-latitude').value.trim();
+    const longitude = document.getElementById('gen-longitude').value.trim();
+
+    if (pollInterval) values.POLL_INTERVAL = pollInterval;
+    if (unlockCooldown) values.UNLOCK_COOLDOWN = unlockCooldown;
+    if (faceTolerance) values.FACE_MATCH_TOLERANCE = faceTolerance;
+    if (dashUsername) values.DASHBOARD_USERNAME = dashUsername;
+    if (dashPassword) values.DASHBOARD_PASSWORD = dashPassword;
+    if (latitude) values.ANALYTICS_LATITUDE = latitude;
+    if (longitude) values.ANALYTICS_LONGITUDE = longitude;
+
+    if (Object.keys(values).length === 0) {
+        showMsg('general', 'No changes to save.', 'warning');
+        return;
+    }
+
+    try {
+        const resp = await fetch('/dashboard/api/settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ section: 'general', values }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            showMsg('general', data.message, 'success');
+        } else {
+            showMsg('general', data.detail || 'Save failed.', 'error');
+        }
+    } catch (e) {
+        showMsg('general', 'Network error: ' + e.message, 'error');
+    }
+}
+
+async function testSwitchBot() {
+    const token = document.getElementById('switchbot-token').value || '{{ env.get("SWITCHBOT_TOKEN", "") }}';
+    const secret = document.getElementById('switchbot-secret').value || '{{ env.get("SWITCHBOT_SECRET", "") }}';
+
+    if (!token || !secret) {
+        showMsg('switchbot', 'Token and secret are required to test.', 'error');
+        return;
+    }
+
+    showMsg('switchbot', 'Testing connection...', 'warning');
+    try {
+        const resp = await fetch('/setup/api/validate-switchbot', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ token, secret }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            showMsg('switchbot', 'Connection successful! Devices found.', 'success');
+        } else {
+            showMsg('switchbot', data.error || 'Connection failed.', 'error');
+        }
+    } catch (e) {
+        showMsg('switchbot', 'Network error: ' + e.message, 'error');
+    }
+}
+
+async function testTelegram() {
+    const token = document.getElementById('telegram-bot-token').value || '{{ env.get("TELEGRAM_BOT_TOKEN", "") }}';
+
+    if (!token) {
+        showMsg('telegram', 'Bot token is required to test.', 'error');
+        return;
+    }
+
+    showMsg('telegram', 'Testing connection...', 'warning');
+    try {
+        const resp = await fetch('/setup/api/validate-telegram', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ token }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            showMsg('telegram', 'Bot verified: @' + (data.username || 'OK'), 'success');
+        } else {
+            showMsg('telegram', data.error || 'Validation failed.', 'error');
+        }
+    } catch (e) {
+        showMsg('telegram', 'Network error: ' + e.message, 'error');
+    }
+}
+
+// --- Blink multi-step flow ---
+let _blinkUsername = '';
+let _blinkPassword = '';
+
+function _blinkShowStep(step) {
+    document.getElementById('blink-step-login').style.display = step === 'login' ? '' : 'none';
+    document.getElementById('blink-step-2fa').style.display = step === '2fa' ? '' : 'none';
+    document.getElementById('blink-step-cameras').style.display = step === 'cameras' ? '' : 'none';
+}
+
+function _blinkPopulateCameras(cameras) {
+    const sel = document.getElementById('blink-camera-select');
+    sel.innerHTML = '';
+    const current = '{{ config.BLINK_CAMERA_NAME }}';
+    cameras.forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        if (name === current) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+function blinkCancel() {
+    _blinkShowStep('login');
+    const msgEl = document.getElementById('msg-blink');
+    msgEl.className = 'form-message';
+    msgEl.textContent = '';
+    toggleEdit('blink');
+}
+
+async function blinkLogin() {
+    _blinkUsername = document.getElementById('blink-username').value.trim();
+    _blinkPassword = document.getElementById('blink-password').value;
+
+    if (!_blinkUsername || !_blinkPassword) {
+        showMsg('blink', 'Email and password are required.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('blink-login-btn');
+    btn.disabled = true;
+    btn.textContent = 'Connecting...';
+    showMsg('blink', 'Authenticating with Blink...', 'warning');
+
+    try {
+        const resp = await fetch('/dashboard/api/settings/blink-login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ username: _blinkUsername, password: _blinkPassword }),
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+            showMsg('blink', data.error || 'Login failed.', 'error');
+            return;
+        }
+
+        if (data.needs_2fa) {
+            showMsg('blink', 'Check your email for a verification code.', 'warning');
+            _blinkShowStep('2fa');
+            document.getElementById('blink-2fa-code').focus();
+        } else if (data.cameras && data.cameras.length > 0) {
+            showMsg('blink', 'Authenticated! Select a camera.', 'success');
+            _blinkPopulateCameras(data.cameras);
+            _blinkShowStep('cameras');
+        } else {
+            showMsg('blink', 'Authenticated but no cameras found on this account.', 'error');
+        }
+    } catch (e) {
+        showMsg('blink', 'Network error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Log In & Verify';
+    }
+}
+
+async function blinkSubmit2FA() {
+    const code = document.getElementById('blink-2fa-code').value.trim();
+    if (!code) {
+        showMsg('blink', 'Enter the verification code from your email.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('blink-2fa-btn');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    showMsg('blink', 'Submitting verification code...', 'warning');
+
+    try {
+        const resp = await fetch('/dashboard/api/settings/blink-2fa', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ code }),
+        });
+        const data = await resp.json();
+
+        if (!data.ok) {
+            showMsg('blink', data.error || 'Verification failed.', 'error');
+            return;
+        }
+
+        if (data.cameras && data.cameras.length > 0) {
+            showMsg('blink', 'Verified! Select a camera.', 'success');
+            _blinkPopulateCameras(data.cameras);
+            _blinkShowStep('cameras');
+        } else {
+            showMsg('blink', 'Verified but no cameras found on this account.', 'error');
+        }
+    } catch (e) {
+        showMsg('blink', 'Network error: ' + e.message, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify Code';
+    }
+}
+
+async function blinkSave() {
+    const cameraName = document.getElementById('blink-camera-select').value;
+
+    showMsg('blink', 'Saving...', 'warning');
+    try {
+        const resp = await fetch('/dashboard/api/settings/blink-save', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                username: _blinkUsername,
+                password: _blinkPassword,
+                camera_name: cameraName,
+            }),
+        });
+        const data = await resp.json();
+        if (data.ok) {
+            showMsg('blink', data.message, 'warning');
+        } else {
+            showMsg('blink', data.error || 'Save failed.', 'error');
+        }
+    } catch (e) {
+        showMsg('blink', 'Network error: ' + e.message, 'error');
+    }
+}
+</script>
+{% endblock %}

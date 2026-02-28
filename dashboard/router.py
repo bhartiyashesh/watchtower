@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
 from starlette.background import BackgroundTask
@@ -32,6 +32,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from config import Config
 from _paths import BUNDLE_DIR
+from setup.env_writer import read_env, write_env
 
 logger = logging.getLogger(__name__)
 
@@ -329,6 +330,90 @@ async def api_blink_snapshot(request: Request):
     return Response(content=image_bytes, media_type="image/jpeg")
 
 
+@router.get("/api/blink-analyze")
+async def api_blink_analyze(request: Request) -> JSONResponse:
+    """Fetch a Blink snapshot, run YOLO detection, and return annotated results.
+
+    Returns JSON with:
+      - image: base64-encoded JPEG with bounding boxes drawn
+      - detections: list of {label, confidence}
+      - summary: human-readable text like "2 persons, 1 dog"
+    """
+    import base64
+    import io
+
+    blink = getattr(request.app.state, "blink", None)
+    if blink is None:
+        raise HTTPException(status_code=404, detail="Blink camera not configured")
+    if blink.needs_2fa:
+        raise HTTPException(status_code=403, detail="Blink 2FA verification required")
+
+    detector = getattr(request.app.state, "detector", None)
+    if detector is None:
+        raise HTTPException(status_code=503, detail="Object detector not available")
+
+    image_bytes = await blink.get_snapshot()
+    if image_bytes is None:
+        raise HTTPException(status_code=502, detail="Failed to fetch snapshot from Blink")
+
+    # Run YOLO detection
+    detections = await detector.detect(image_bytes)
+
+    # Draw bounding boxes on image
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    font = ImageFont.load_default()
+
+    LABEL_COLORS = {
+        "person": (68, 204, 136),
+        "car": (100, 149, 237),
+        "cat": (255, 165, 0),
+        "dog": (255, 136, 68),
+        "package": (186, 85, 211),
+    }
+
+    for det in detections:
+        color = LABEL_COLORS.get(det.label, (255, 255, 255))
+        box = (det.bbox_x1, det.bbox_y1, det.bbox_x2, det.bbox_y2)
+        draw.rectangle(box, outline=color, width=3)
+
+        label_text = f"{det.label} {det.confidence:.0%}"
+        bbox = font.getbbox(label_text)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
+        # Label background
+        draw.rectangle(
+            [det.bbox_x1, det.bbox_y1 - text_h - 6, det.bbox_x1 + text_w + 8, det.bbox_y1],
+            fill=color,
+        )
+        draw.text((det.bbox_x1 + 4, det.bbox_y1 - text_h - 4), label_text, fill="white", font=font)
+
+    # Encode annotated image to base64
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=90)
+    b64_image = base64.b64encode(buf.getvalue()).decode("ascii")
+
+    # Build summary text
+    from collections import Counter
+    counts = Counter(d.label for d in detections)
+    if counts:
+        parts = []
+        for label, count in counts.most_common():
+            parts.append(f"{count} {label}" if count == 1 else f"{count} {label}s")
+        summary = "Detected: " + ", ".join(parts)
+    else:
+        summary = "No objects detected"
+
+    return JSONResponse({
+        "image": b64_image,
+        "detections": [
+            {"label": d.label, "confidence": round(d.confidence, 3)}
+            for d in detections
+        ],
+        "summary": summary,
+    })
+
+
 @router.post("/api/blink-2fa")
 async def api_blink_2fa(request: Request) -> JSONResponse:
     """Submit a Blink 2FA verification code."""
@@ -349,6 +434,158 @@ async def api_blink_2fa(request: Request) -> JSONResponse:
         raise HTTPException(status_code=401, detail="Invalid verification code")
 
     return JSONResponse({"status": "ok", "message": "Blink camera verified"})
+
+
+@router.get("/api/blink-live")
+async def api_blink_live(request: Request):
+    """Stream live MJPEG video from the Blink camera.
+
+    Starts the BlinkLiveStream (IMMIS → local TCP MPEG-TS), spawns FFmpeg
+    to transcode to MJPEG, and pipes the output as a multipart stream that
+    browsers render natively in an <img> tag.
+
+    Auto-reconnects when the Blink stream session ends (sessions are
+    limited to ~30-90s by the Blink cloud).
+    """
+    blink = getattr(request.app.state, "blink", None)
+    if blink is None:
+        raise HTTPException(status_code=404, detail="Blink camera not configured")
+    if blink.needs_2fa:
+        raise HTTPException(status_code=403, detail="Blink 2FA verification required")
+
+    ffmpeg_bin = _find_ffmpeg()
+
+    async def _start_ffmpeg_session():
+        """Start a Blink livestream + FFmpeg process.  Returns (proc, stderr_task)."""
+        tcp_url = await blink.start_livestream()
+        # Brief buffer so FFmpeg has TS packets waiting when it connects
+        await asyncio.sleep(0.5)
+
+        proc = await asyncio.create_subprocess_exec(
+            ffmpeg_bin,
+            # Input: known MPEG-TS, minimal probe for instant start
+            "-f", "mpegts",
+            "-analyzeduration", "500000",     # 0.5s — just enough for codec detection
+            "-probesize", "200000",           # 200 KB probe window
+            "-rw_timeout", "15000000",        # 15s TCP timeout
+            "-fflags", "+nobuffer+discardcorrupt",
+            "-flags", "low_delay",
+            "-i", tcp_url,
+            # Output: MJPEG to stdout
+            "-f", "mjpeg",
+            "-q:v", "5",
+            "-an",
+            "-r", "15",
+            "-vf", "scale=1280:-2",
+            "pipe:1",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        # Log FFmpeg stderr in background so errors are visible
+        async def _drain_stderr():
+            while proc.stderr and not proc.stderr.at_eof():
+                line = await proc.stderr.readline()
+                if not line:
+                    break
+                text = line.decode(errors="replace").rstrip()
+                if text:
+                    logger.info("ffmpeg(live): %s", text)
+        stderr_task = asyncio.create_task(_drain_stderr())
+        return proc, stderr_task
+
+    # Start the initial session
+    try:
+        proc, stderr_task = await _start_ffmpeg_session()
+    except Exception:
+        logger.exception("Failed to start Blink livestream")
+        raise HTTPException(status_code=502, detail="Failed to start livestream")
+
+    request.app.state._blink_ffmpeg = proc
+
+    async def mjpeg_generator():
+        """Read JPEG frames from FFmpeg, auto-reconnecting when the Blink session ends."""
+        nonlocal proc, stderr_task
+        JPEG_START = b"\xff\xd8"
+        JPEG_END = b"\xff\xd9"
+        MAX_RECONNECTS = 20  # ~10-30 minutes of viewing depending on session length
+        reconnects = 0
+        stop_requested = False
+
+        try:
+            while reconnects <= MAX_RECONNECTS:
+                buf = b""
+                while True:
+                    chunk = await proc.stdout.read(65536)
+                    if not chunk:
+                        break
+                    buf += chunk
+                    while True:
+                        start = buf.find(JPEG_START)
+                        if start == -1:
+                            buf = b""
+                            break
+                        end = buf.find(JPEG_END, start + 2)
+                        if end == -1:
+                            buf = buf[start:]
+                            break
+                        frame = buf[start : end + 2]
+                        buf = buf[end + 2 :]
+                        yield (
+                            b"--frame\r\n"
+                            b"Content-Type: image/jpeg\r\n"
+                            b"Content-Length: " + str(len(frame)).encode() + b"\r\n"
+                            b"\r\n" + frame + b"\r\n"
+                        )
+
+                # FFmpeg exited — clean up this session
+                await proc.wait()
+                await blink.stop_livestream()
+
+                # Check if we should reconnect
+                if stop_requested:
+                    break
+
+                reconnects += 1
+                logger.info("Blink stream session ended, reconnecting (%d/%d)", reconnects, MAX_RECONNECTS)
+
+                try:
+                    proc, stderr_task = await _start_ffmpeg_session()
+                    request.app.state._blink_ffmpeg = proc
+                except Exception:
+                    logger.warning("Failed to reconnect Blink livestream")
+                    break
+
+        except (asyncio.CancelledError, GeneratorExit):
+            stop_requested = True
+        finally:
+            if proc.returncode is None:
+                proc.kill()
+                await proc.wait()
+            await blink.stop_livestream()
+            request.app.state._blink_ffmpeg = None
+
+    return StreamingResponse(
+        mjpeg_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@router.api_route("/api/blink-live-stop", methods=["GET", "POST"])
+async def api_blink_live_stop(request: Request):
+    """Explicitly stop the Blink livestream and FFmpeg process."""
+    blink = getattr(request.app.state, "blink", None)
+    proc = getattr(request.app.state, "_blink_ffmpeg", None)
+
+    if proc and proc.returncode is None:
+        proc.kill()
+        await proc.wait()
+    request.app.state._blink_ffmpeg = None
+
+    if blink:
+        await blink.stop_livestream()
+
+    return JSONResponse({"status": "ok", "message": "Livestream stopped"})
 
 
 @router.get("/api/battery")
@@ -651,6 +888,188 @@ async def serve_face_photo(filename: str) -> FileResponse:
         raise HTTPException(status_code=404, detail="Photo not found")
 
     return FileResponse(str(path), media_type="image/jpeg")
+
+
+# ---------------------------------------------------------------------------
+# Static assets (background image, etc.)
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# Settings page — view/update device & general config
+# ---------------------------------------------------------------------------
+
+# Whitelist of .env keys allowed per settings section (prevents arbitrary writes)
+_SETTINGS_WHITELIST: dict[str, list[str]] = {
+    "ring": ["RING_USERNAME", "RING_PASSWORD"],
+    "switchbot": ["SWITCHBOT_TOKEN", "SWITCHBOT_SECRET", "SWITCHBOT_DEVICE_ID"],
+    "blink": ["BLINK_USERNAME", "BLINK_PASSWORD", "BLINK_CAMERA_NAME"],
+    "telegram": ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID"],
+    "general": [
+        "POLL_INTERVAL", "UNLOCK_COOLDOWN", "FACE_MATCH_TOLERANCE",
+        "DASHBOARD_USERNAME", "DASHBOARD_PASSWORD",
+        "ANALYTICS_LATITUDE", "ANALYTICS_LONGITUDE",
+    ],
+}
+
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request) -> HTMLResponse:
+    """Render the Settings / Devices page."""
+    env = read_env()
+    return templates.TemplateResponse(
+        "settings.html",
+        {"request": request, "config": Config, "env": env},
+    )
+
+
+@router.post("/api/settings")
+async def api_save_settings(request: Request) -> JSONResponse:
+    """Save settings for a given section to .env and reload Config."""
+    body = await request.json()
+    section = body.get("section", "")
+    values = body.get("values", {})
+
+    if section not in _SETTINGS_WHITELIST:
+        raise HTTPException(status_code=400, detail=f"Unknown section: {section}")
+
+    allowed_keys = _SETTINGS_WHITELIST[section]
+    updates = {}
+    for key, value in values.items():
+        if key not in allowed_keys:
+            raise HTTPException(status_code=400, detail=f"Key not allowed: {key}")
+        updates[key] = str(value)
+
+    if not updates:
+        return JSONResponse({"ok": True, "restart_needed": False, "message": "Nothing to update"})
+
+    write_env(updates=updates)
+    Config.reload()
+
+    restart_needed = section in ("ring", "switchbot", "blink", "telegram")
+    message = "Settings saved."
+    if restart_needed:
+        message += " Restart WatchTower for device changes to take full effect."
+
+    return JSONResponse({"ok": True, "restart_needed": restart_needed, "message": message})
+
+
+# ---------------------------------------------------------------------------
+# Blink multi-step setup: login → 2FA → camera list → save
+# ---------------------------------------------------------------------------
+
+@router.post("/api/settings/blink-login")
+async def api_settings_blink_login(request: Request) -> JSONResponse:
+    """Step 1: Test Blink credentials. If 2FA is needed, store the instance."""
+    body = await request.json()
+    username = body.get("username", "").strip()
+    password = body.get("password", "").strip()
+
+    if not username or not password:
+        return JSONResponse({"ok": False, "error": "Email and password are required."})
+
+    try:
+        from blink_client import BlinkClient, BLINK_CREDS_CACHE
+
+        blink = BlinkClient(username, password)
+        await blink.authenticate()
+
+        if blink.needs_2fa:
+            request.app.state.settings_blink = blink
+            return JSONResponse({"ok": True, "needs_2fa": True, "cameras": []})
+
+        cameras = list(blink.blink.cameras.keys()) if blink.blink and blink.blink.cameras else []
+
+        if not cameras and BLINK_CREDS_CACHE.exists():
+            # Stale cached credentials let blinkpy skip 2FA but the session
+            # is actually dead.  Delete the cache and retry fresh — this will
+            # trigger the real 2FA flow.
+            BLINK_CREDS_CACHE.unlink(missing_ok=True)
+            await blink.stop()
+
+            blink = BlinkClient(username, password)
+            await blink.authenticate()
+
+            if blink.needs_2fa:
+                request.app.state.settings_blink = blink
+                return JSONResponse({"ok": True, "needs_2fa": True, "cameras": []})
+
+            cameras = list(blink.blink.cameras.keys()) if blink.blink and blink.blink.cameras else []
+
+        request.app.state.settings_blink = blink
+        return JSONResponse({"ok": True, "needs_2fa": False, "cameras": cameras})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": f"Blink login failed: {e}"})
+
+
+@router.post("/api/settings/blink-2fa")
+async def api_settings_blink_2fa(request: Request) -> JSONResponse:
+    """Step 2: Submit 2FA code and return camera list on success."""
+    body = await request.json()
+    code = body.get("code", "").strip()
+    if not code:
+        return JSONResponse({"ok": False, "error": "Verification code is required."})
+
+    blink = getattr(request.app.state, "settings_blink", None)
+    if blink is None:
+        return JSONResponse({"ok": False, "error": "No pending Blink session. Log in first."})
+
+    success = await blink.submit_2fa(code)
+    if not success:
+        return JSONResponse({"ok": False, "error": "Invalid verification code."})
+
+    cameras = list(blink.blink.cameras.keys()) if blink.blink and blink.blink.cameras else []
+    return JSONResponse({"ok": True, "cameras": cameras})
+
+
+@router.post("/api/settings/blink-save")
+async def api_settings_blink_save(request: Request) -> JSONResponse:
+    """Step 3: Save Blink credentials + selected camera to .env."""
+    body = await request.json()
+    username = body.get("username", "").strip()
+    password = body.get("password", "").strip()
+    camera_name = body.get("camera_name", "").strip()
+
+    if not username or not password:
+        return JSONResponse({"ok": False, "error": "Email and password are required."})
+
+    updates = {
+        "BLINK_USERNAME": username,
+        "BLINK_PASSWORD": password,
+        "BLINK_CAMERA_NAME": camera_name,
+    }
+    write_env(updates=updates)
+    Config.reload()
+
+    # Promote the authenticated settings session to the live operational slot
+    # so the dashboard snapshot works immediately without a full restart.
+    settings_blink = getattr(request.app.state, "settings_blink", None)
+    if settings_blink and settings_blink.blink and not settings_blink.needs_2fa:
+        # Set the selected camera name so _find_camera picks the right one
+        settings_blink.camera_name = camera_name
+        settings_blink._camera = settings_blink._find_camera()
+
+        old_blink = getattr(request.app.state, "blink", None)
+        if old_blink:
+            await old_blink.stop()
+        request.app.state.blink = settings_blink
+        request.app.state.settings_blink = None
+
+        return JSONResponse({
+            "ok": True,
+            "restart_needed": False,
+            "message": "Blink camera connected and ready.",
+        })
+
+    # Fallback if no live session available
+    if settings_blink:
+        await settings_blink.stop()
+        request.app.state.settings_blink = None
+
+    return JSONResponse({
+        "ok": True,
+        "restart_needed": True,
+        "message": "Blink settings saved. Restart WatchTower for changes to take effect.",
+    })
 
 
 # ---------------------------------------------------------------------------

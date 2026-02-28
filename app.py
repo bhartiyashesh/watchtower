@@ -246,6 +246,7 @@ async def lifespan(app: FastAPI):
     app.state.switchbot = switchbot
     app.state.ring = ring
     app.state.recognizer = recognizer
+    app.state.detector = detector
     app.state.blink = blink
 
     _print_banner(host, port)
@@ -294,6 +295,12 @@ async def setup_mode_guard(request: Request, call_next):
         if not path.startswith("/setup") and path != "/health":
             return RedirectResponse("/setup/", status_code=303)
     return await call_next(request)
+
+
+@app.get("/")
+async def root():
+    """Redirect root to dashboard."""
+    return RedirectResponse("/dashboard/", status_code=303)
 
 
 @app.get("/health")

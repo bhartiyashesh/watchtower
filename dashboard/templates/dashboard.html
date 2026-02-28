@@ -97,9 +97,20 @@
                     color: rgba(255,255,255,0.3); font-size: 0.85rem;
                 ">Loading snapshot...</div>
             </div>
-            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                <button id="blink-btn-snapshot" class="lock-btn lock-btn-lock blink-mode-active" onclick="blinkSetMode('snapshot')">Snapshot</button>
+                <button id="blink-btn-live" class="lock-btn lock-btn-unlock" onclick="blinkSetMode('live')">Live</button>
                 <button id="blink-refresh" class="lock-btn lock-btn-lock" onclick="refreshBlink()">Refresh</button>
-                <span id="blink-msg" class="stat-sub">Live snapshot</span>
+                <button id="blink-analyze" class="lock-btn lock-btn-analyze" onclick="analyzeBlink()">Analyze</button>
+                <span id="blink-msg" class="stat-sub">Snapshot mode</span>
+            </div>
+            <div id="blink-detections" style="display: none; margin-top: 0.5rem;">
+                <div id="blink-det-summary" style="
+                    font-size: 0.85rem; color: rgba(255,255,255,0.7);
+                    padding: 0.4rem 0.6rem; border-radius: 6px;
+                    background: rgba(255,255,255,0.04);
+                "></div>
+                <div id="blink-det-tags" style="margin-top: 0.4rem; display: flex; gap: 0.3rem; flex-wrap: wrap;"></div>
             </div>
         </div>
     </div>
@@ -182,6 +193,30 @@
     .lock-btn-unlock:hover:not(:disabled) {
         background: rgba(255, 136, 68, 0.35);
     }
+    .blink-mode-active {
+        background: rgba(68, 204, 136, 0.4) !important;
+        border-color: var(--accent-green) !important;
+    }
+    .lock-btn-analyze {
+        background: rgba(186, 85, 211, 0.2);
+        color: #bb88ee;
+        border: 1px solid rgba(186, 85, 211, 0.3);
+    }
+    .lock-btn-analyze:hover:not(:disabled) {
+        background: rgba(186, 85, 211, 0.35);
+    }
+    .det-tag {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    .det-tag-person  { background: rgba(68,204,136,0.2); color: #44cc88; }
+    .det-tag-car     { background: rgba(100,149,237,0.2); color: #6495ed; }
+    .det-tag-cat     { background: rgba(255,165,0,0.2); color: #ffa500; }
+    .det-tag-dog     { background: rgba(255,136,68,0.2); color: #ff8844; }
+    .det-tag-package { background: rgba(186,85,211,0.2); color: #ba55d3; }
 </style>
 
 <script>
@@ -258,13 +293,54 @@ if (blink2faInput) {
     });
 }
 
-// Blink camera snapshot
+// Blink camera — mode management (snapshot vs live)
+let blinkMode = 'snapshot';
+
+function blinkSetMode(mode) {
+    const img = document.getElementById('blink-snapshot');
+    const placeholder = document.getElementById('blink-placeholder');
+    const msg = document.getElementById('blink-msg');
+    const btnSnap = document.getElementById('blink-btn-snapshot');
+    const btnLive = document.getElementById('blink-btn-live');
+    const btnRefresh = document.getElementById('blink-refresh');
+    if (!img) return;
+
+    // Don't restart if already in this mode
+    if (mode === blinkMode && mode === 'live' && img.src.includes('blink-live')) return;
+
+    blinkMode = mode;
+
+    // Update button active states
+    btnSnap.classList.toggle('blink-mode-active', mode === 'snapshot');
+    btnLive.classList.toggle('blink-mode-active', mode === 'live');
+
+    if (mode === 'live') {
+        // Stop any previous live stream before starting a new one
+        fetch('/dashboard/api/blink-live-stop', { credentials: 'include' }).catch(() => {});
+
+        // Set img src directly — browser natively renders MJPEG multipart stream
+        if (placeholder) placeholder.style.display = 'none';
+        img.style.display = 'block';
+        img.src = '/dashboard/api/blink-live';
+        msg.textContent = 'Live stream';
+        btnRefresh.style.display = 'none';
+    } else {
+        // Switching back to snapshot: stop the live stream
+        img.src = '';
+        fetch('/dashboard/api/blink-live-stop', { credentials: 'include' }).catch(() => {});
+        btnRefresh.style.display = '';
+        msg.textContent = 'Snapshot mode';
+        refreshBlink();
+    }
+}
+
+// Blink camera snapshot fetch
 async function refreshBlink() {
     const img = document.getElementById('blink-snapshot');
     const placeholder = document.getElementById('blink-placeholder');
     const btn = document.getElementById('blink-refresh');
     const msg = document.getElementById('blink-msg');
-    if (!img) return;
+    if (!img || blinkMode !== 'snapshot') return;
 
     btn.disabled = true;
     msg.textContent = 'Fetching snapshot...';
@@ -291,12 +367,68 @@ async function refreshBlink() {
     }
 }
 
+// Blink YOLO analysis
+async function analyzeBlink() {
+    const img = document.getElementById('blink-snapshot');
+    const placeholder = document.getElementById('blink-placeholder');
+    const btn = document.getElementById('blink-analyze');
+    const msg = document.getElementById('blink-msg');
+    const detsBox = document.getElementById('blink-detections');
+    const detSummary = document.getElementById('blink-det-summary');
+    const detTags = document.getElementById('blink-det-tags');
+    if (!img) return;
+
+    // Switch to snapshot mode if in live mode
+    if (blinkMode === 'live') blinkSetMode('snapshot');
+
+    btn.disabled = true;
+    msg.textContent = 'Analyzing...';
+    detsBox.style.display = 'none';
+
+    try {
+        const resp = await fetch('/dashboard/api/blink-analyze', { credentials: 'include' });
+        if (!resp.ok) {
+            const err = await resp.json().catch(() => ({}));
+            throw new Error(err.detail || 'Analysis failed');
+        }
+        const data = await resp.json();
+
+        // Show annotated image
+        if (placeholder) placeholder.style.display = 'none';
+        img.style.display = 'block';
+        img.src = 'data:image/jpeg;base64,' + data.image;
+
+        // Show detections
+        detSummary.textContent = data.summary;
+        detTags.innerHTML = '';
+        for (const det of data.detections) {
+            const tag = document.createElement('span');
+            tag.className = 'det-tag det-tag-' + det.label;
+            tag.textContent = det.label + ' ' + Math.round(det.confidence * 100) + '%';
+            detTags.appendChild(tag);
+        }
+        detsBox.style.display = 'block';
+        msg.textContent = 'Analyzed ' + new Date().toLocaleTimeString();
+    } catch (e) {
+        msg.textContent = 'Error: ' + e.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
+
 // Auto-load Blink snapshot on page load (only if not waiting for 2FA)
 if (document.getElementById('blink-snapshot') &&
     document.getElementById('blink-snapshot-view') &&
     document.getElementById('blink-snapshot-view').style.display !== 'none') {
     refreshBlink();
 }
+
+// Clean up live stream when navigating away
+window.addEventListener('beforeunload', function() {
+    if (blinkMode === 'live') {
+        navigator.sendBeacon('/dashboard/api/blink-live-stop');
+    }
+});
 
 // Lock / unlock controls
 async function sendLockCommand(action) {
