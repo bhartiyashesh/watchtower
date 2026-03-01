@@ -42,7 +42,14 @@
                 >
             {% endif %}
             <div class="event-info">
-                <div class="event-meta"><span class="utc-time" data-utc="{{ event.recorded_at }}"></span></div>
+                <div class="event-meta">
+                    {% if event.camera_id == "blink" %}
+                        <span class="camera-badge camera-badge-blink">Blink</span>
+                    {% else %}
+                        <span class="camera-badge camera-badge-ring">Ring</span>
+                    {% endif %}
+                    <span class="utc-time" data-utc="{{ event.recorded_at }}"></span>
+                </div>
                 <div class="event-title">
                     {% if event.person_name %}
                         {{ event.person_name }}
