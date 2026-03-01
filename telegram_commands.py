@@ -35,12 +35,13 @@ class TelegramCommandHandler:
         chat_id: Authorized Telegram chat ID (string or int).
     """
 
-    def __init__(self, alerter, switchbot, store, ring, chat_id: str | int) -> None:
+    def __init__(self, alerter, switchbot, store, ring, chat_id: str | int, blink=None) -> None:
         self._bot = alerter._bot
         self._alerter = alerter
         self._switchbot = switchbot
         self._store = store
         self._ring = ring
+        self._blink = blink
         self._chat_id = str(chat_id)
         self._offset: int = 0
 
@@ -92,6 +93,7 @@ class TelegramCommandHandler:
             "/snap": self._cmd_snap,
             "/events": self._cmd_events,
             "/mute": self._cmd_mute,
+            "/arm-blink": self._cmd_arm_blink,
             "/help": self._cmd_help,
             "/start": self._cmd_help,
         }
@@ -210,6 +212,30 @@ class TelegramCommandHandler:
         self._alerter.mute(minutes)
         await self._reply(chat_id, f"🔇 Alerts muted for {minutes} minutes.\nSend /mute off to unmute.")
 
+    async def _cmd_arm_blink(self, chat_id: int, args: str) -> None:
+        """Arm or disarm the Blink camera. Usage: /arm-blink [on|off]"""
+        if self._blink is None or self._blink.needs_2fa or self._blink._camera is None:
+            await self._reply(chat_id, "Blink camera is not available.")
+            return
+
+        args = args.strip().lower()
+        if args in ("off", "disarm", "0", "false"):
+            await self._blink._camera.async_arm(False)
+            await self._reply(chat_id, "🛡 Blink camera disarmed — motion detection off.")
+        elif args in ("on", "arm", "1", "true", ""):
+            await self._blink._camera.async_arm(True)
+            await self._reply(chat_id, "🛡 Blink camera armed — motion detection on.")
+        elif args == "status":
+            armed = self._blink._camera.arm
+            motion = self._blink._camera.motion_detected
+            emoji = "🟢" if armed else "⚪"
+            await self._reply(
+                chat_id,
+                f"{emoji} Blink armed: {armed}\nMotion detected: {motion}",
+            )
+        else:
+            await self._reply(chat_id, "Usage: /arm-blink [on|off|status]")
+
     async def _cmd_help(self, chat_id: int, args: str) -> None:
         """List available commands."""
         text = (
@@ -221,6 +247,9 @@ class TelegramCommandHandler:
             "/events — Last 5 events summary\n"
             "/mute <min> — Mute alerts (default 30 min)\n"
             "/mute off — Unmute alerts\n"
+            "/arm-blink — Arm Blink camera\n"
+            "/arm-blink off — Disarm Blink camera\n"
+            "/arm-blink status — Check Blink arm state\n"
             "/help — Show this message"
         )
         await self._reply(chat_id, text)

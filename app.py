@@ -207,19 +207,6 @@ async def lifespan(app: FastAPI):
         polling_loop(ring, recognizer, switchbot, detector, store, alerter)
     )
 
-    # --- Start Telegram command handler (if alerter is available) ---
-    command_task = None
-    if alerter is not None:
-        logger.info("Starting Telegram command handler...")
-        command_handler = TelegramCommandHandler(
-            alerter=alerter,
-            switchbot=switchbot,
-            store=store,
-            ring=ring,
-            chat_id=Config.TELEGRAM_CHAT_ID,
-        )
-        command_task = asyncio.create_task(command_handler.run())
-
     # --- Initialize BlinkClient (optional — standalone camera feed) ---
     blink = None
     if Config.BLINK_USERNAME and Config.BLINK_PASSWORD:
@@ -239,6 +226,20 @@ async def lifespan(app: FastAPI):
             blink = None
     else:
         logger.info("BLINK_USERNAME/BLINK_PASSWORD not set — Blink camera feed disabled")
+
+    # --- Start Telegram command handler (if alerter is available) ---
+    command_task = None
+    if alerter is not None:
+        logger.info("Starting Telegram command handler...")
+        command_handler = TelegramCommandHandler(
+            alerter=alerter,
+            switchbot=switchbot,
+            store=store,
+            ring=ring,
+            chat_id=Config.TELEGRAM_CHAT_ID,
+            blink=blink,
+        )
+        command_task = asyncio.create_task(command_handler.run())
 
     # --- Start Blink motion monitoring loop (if Blink is authenticated) ---
     blink_monitor_task = None
