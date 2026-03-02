@@ -8,8 +8,18 @@
 <div class="card">
     <div class="timelapse-controls">
         <div class="control-row">
-            <label for="date-picker">Date</label>
-            <input type="date" id="date-picker" />
+            <label for="start-date">From</label>
+            <input type="date" id="start-date" />
+
+            <label for="end-date">To</label>
+            <input type="date" id="end-date" />
+
+            <label for="camera-select">Camera</label>
+            <select id="camera-select">
+                <option value="all">All cameras</option>
+                <option value="front_door">Ring</option>
+                <option value="blink">Blink</option>
+            </select>
 
             <label for="fps-select">Speed</label>
             <select id="fps-select">
@@ -141,41 +151,64 @@
 
 <script>
 (function() {
-    const datePicker = document.getElementById('date-picker');
-    const fpsSelect  = document.getElementById('fps-select');
+    const startDate   = document.getElementById('start-date');
+    const endDate     = document.getElementById('end-date');
+    const cameraSelect = document.getElementById('camera-select');
+    const fpsSelect   = document.getElementById('fps-select');
     const generateBtn = document.getElementById('generate-btn');
-    const eventCount = document.getElementById('event-count');
-    const spinner    = document.getElementById('spinner');
-    const errorMsg   = document.getElementById('error-msg');
-    const playerWrap = document.getElementById('player-wrap');
-    const player     = document.getElementById('player');
+    const eventCount  = document.getElementById('event-count');
+    const spinner     = document.getElementById('spinner');
+    const errorMsg    = document.getElementById('error-msg');
+    const playerWrap  = document.getElementById('player-wrap');
+    const player      = document.getElementById('player');
     const downloadLink = document.getElementById('download-link');
 
-    // Default to today
+    // Default: today for both
     const today = new Date().toISOString().slice(0, 10);
-    datePicker.value = today;
+    startDate.value = today;
+    endDate.value = today;
 
-    // Fetch count on load + date change
-    datePicker.addEventListener('change', fetchCount);
+    // Re-fetch count on any control change
+    startDate.addEventListener('change', fetchCount);
+    endDate.addEventListener('change', fetchCount);
+    cameraSelect.addEventListener('change', fetchCount);
     fetchCount();
 
+    function buildParams() {
+        const params = new URLSearchParams();
+        const s = startDate.value;
+        const e = endDate.value;
+        if (!s) return null;
+
+        if (s === e || !e) {
+            // Single day — use legacy date param for backwards compat
+            params.set('date', s);
+        } else {
+            params.set('start_date', s);
+            params.set('end_date', e);
+        }
+        const cam = cameraSelect.value;
+        if (cam !== 'all') params.set('camera', cam);
+        return params;
+    }
+
     async function fetchCount() {
-        const date = datePicker.value;
-        if (!date) {
+        const params = buildParams();
+        if (!params) {
             eventCount.textContent = '';
             generateBtn.disabled = true;
             return;
         }
 
         try {
-            const resp = await fetch('/dashboard/api/timelapse-info?date=' + encodeURIComponent(date));
+            const resp = await fetch('/dashboard/api/timelapse-info?' + params.toString());
             const data = await resp.json();
             if (data.count > 0) {
                 eventCount.textContent = data.count + ' events available';
                 eventCount.className = 'event-count has-events';
                 generateBtn.disabled = false;
             } else {
-                eventCount.textContent = 'No events for this date';
+                eventCount.textContent = 'No events for the selected range';
                 eventCount.className = 'event-count';
                 generateBtn.disabled = true;
             }
@@ -187,9 +220,10 @@
     }
 
     generateBtn.addEventListener('click', async function() {
-        const date = datePicker.value;
-        const fps  = fpsSelect.value;
-        if (!date) return;
+        const params = buildParams();
+        if (!params) return;
+
+        params.set('fps', fpsSelect.value);
 
         // Show spinner, hide previous results
         spinner.style.display = '';
@@ -203,8 +237,7 @@
         }
 
         try {
-            const url = '/dashboard/api/timelapse?date=' + encodeURIComponent(date) + '&fps=' + fps;
-            const resp = await fetch(url);
+            const resp = await fetch('/dashboard/api/timelapse?' + params.toString());
 
             if (!resp.ok) {
                 const err = await resp.json().catch(() => ({ detail: 'Generation failed' }));
@@ -216,7 +249,8 @@
 
             player.src = blobUrl;
             downloadLink.href = blobUrl;
-            downloadLink.download = 'timelapse-' + date + '.mp4';
+            const filename = 'timelapse-' + startDate.value + (endDate.value !== startDate.value ? '-to-' + endDate.value : '') + '.mp4';
+            downloadLink.download = filename;
 
             playerWrap.style.display = '';
         } catch (e) {

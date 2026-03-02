@@ -100,7 +100,7 @@
 document.querySelectorAll('.utc-time').forEach(el => {
     const raw = el.dataset.utc;
     if (!raw) return;
-    const utc = raw.includes('Z') ? raw : raw + 'Z';
+    const utc = (raw.includes('Z') || raw.match(/[+-]\d{2}:\d{2}$/)) ? raw : raw + 'Z';
     const dt = new Date(utc);
     el.textContent = dt.toLocaleString(undefined, {
         month: 'short', day: 'numeric', year: 'numeric',

@@ -481,17 +481,31 @@ class EventStore:
         ) as cursor:
             return [dict(r) for r in await cursor.fetchall()]
 
-    async def get_events_for_timelapse(self, date: str) -> list[dict]:
-        """Return events with thumbnails for a given date, ordered chronologically."""
-        async with self.db.execute(
-            """
-            SELECT id, recorded_at, person_name, thumbnail_path
-            FROM events
-            WHERE DATE(recorded_at) = ? AND thumbnail_path IS NOT NULL
-            ORDER BY recorded_at ASC
-            """,
-            (date,),
-        ) as cursor:
+    async def get_events_for_timelapse(
+        self, date: str | None = None, start_date: str | None = None,
+        end_date: str | None = None, camera: str = "all",
+    ) -> list[dict]:
+        """Return events with thumbnails for a date range, ordered chronologically."""
+        where = ["thumbnail_path IS NOT NULL"]
+        params: list = []
+
+        if date and not start_date:
+            where.append("DATE(recorded_at) = ?")
+            params.append(date)
+        else:
+            if start_date:
+                where.append("DATE(recorded_at) >= ?")
+                params.append(start_date)
+            if end_date:
+                where.append("DATE(recorded_at) <= ?")
+                params.append(end_date)
+
+        if camera != "all":
+            where.append("camera_id = ?")
+            params.append(camera)
+
+        sql = f"SELECT id, recorded_at, person_name, thumbnail_path, camera_id FROM events WHERE {' AND '.join(where)} ORDER BY recorded_at ASC"
+        async with self.db.execute(sql, params) as cursor:
             return [dict(r) for r in await cursor.fetchall()]
 
     # ------------------------------------------------------------------

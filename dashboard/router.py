@@ -675,12 +675,17 @@ async def timelapse_page(request: Request) -> HTMLResponse:
 @router.get("/api/timelapse-info")
 async def api_timelapse_info(
     request: Request,
-    date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    date: str = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    start_date: str = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    camera: str = Query("all"),
 ) -> JSONResponse:
-    """Return thumbnail count for a given date (used by frontend preview)."""
+    """Return thumbnail count for a date or date range (used by frontend preview)."""
     store = request.app.state.store
-    events = await store.get_events_for_timelapse(date)
-    return JSONResponse({"date": date, "count": len(events)})
+    events = await store.get_events_for_timelapse(
+        date=date, start_date=start_date, end_date=end_date, camera=camera,
+    )
+    return JSONResponse({"count": len(events)})
 
 
 def _burn_overlay(src_path: str, dst_path: str, timestamp: str, person_name: str | None) -> None:
@@ -714,17 +719,22 @@ def _cleanup_tmpdir(tmpdir: str) -> None:
 @router.get("/api/timelapse")
 async def api_timelapse(
     request: Request,
-    date: str = Query(..., pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    date: str = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    start_date: str = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    end_date: str = Query(None, pattern=r"^\d{4}-\d{2}-\d{2}$"),
+    camera: str = Query("all"),
     fps: int = Query(2, ge=1, le=5),
 ) -> FileResponse:
-    """Generate a timelapse MP4 from a day's thumbnails and stream it back."""
+    """Generate a timelapse MP4 from thumbnails and stream it back."""
     store = request.app.state.store
-    events = await store.get_events_for_timelapse(date)
+    events = await store.get_events_for_timelapse(
+        date=date, start_date=start_date, end_date=end_date, camera=camera,
+    )
 
     if not events:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No events with thumbnails found for this date",
+            detail="No events with thumbnails found for the selected range",
         )
 
     tmpdir = tempfile.mkdtemp(prefix="timelapse_")
