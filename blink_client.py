@@ -170,6 +170,33 @@ class BlinkClient:
 
         return None
 
+    async def async_arm(self, value: bool) -> None:
+        """Arm or disarm both the sync module (network) and the camera.
+
+        Blink requires the network/sync module to be armed for motion events
+        to trigger. camera.async_arm() only toggles per-camera motion
+        sensitivity. This method arms both layers.
+        """
+        if not self._camera:
+            raise RuntimeError("Camera not ready")
+
+        # Arm the sync module (network-level gate for motion detection)
+        sync = self._camera.sync
+        if sync is not None:
+            await sync.async_arm(value)
+            logger.info("Blink sync module '%s' %s", sync.name, "armed" if value else "disarmed")
+
+        # Arm the camera itself (per-camera motion sensitivity)
+        await self._camera.async_arm(value)
+        logger.info("Blink camera '%s' %s", self._camera.name, "armed" if value else "disarmed")
+
+    @property
+    def network_armed(self) -> bool | None:
+        """Return the network-level arm state, or None if unavailable."""
+        if not self._camera or not self._camera.sync:
+            return None
+        return self._camera.sync.arm
+
     async def get_snapshot(self) -> bytes | None:
         """Request a new snapshot and return JPEG bytes."""
         if self.needs_2fa or not self._camera:

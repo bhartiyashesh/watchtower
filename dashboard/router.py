@@ -443,13 +443,19 @@ async def api_blink_arm_status(request: Request) -> JSONResponse:
     if blink is None or blink.needs_2fa or blink._camera is None:
         raise HTTPException(status_code=404, detail="Blink camera not available")
 
-    armed = blink._camera.arm
+    camera_armed = blink._camera.arm
+    network_armed = blink.network_armed
     # blinkpy returns None before first refresh — treat as unknown/false
-    if armed is None:
-        armed = False
+    if camera_armed is None:
+        camera_armed = False
+    if network_armed is None:
+        network_armed = False
 
+    # "armed" means both network and camera are armed (both gates must be open)
     return JSONResponse({
-        "armed": bool(armed),
+        "armed": bool(camera_armed) and bool(network_armed),
+        "camera_armed": bool(camera_armed),
+        "network_armed": bool(network_armed),
         "motion_detected": bool(blink._camera.motion_detected or False),
     })
 
@@ -464,7 +470,7 @@ async def api_blink_arm(request: Request) -> JSONResponse:
     body = await request.json()
     armed = body.get("armed", True)
 
-    await blink._camera.async_arm(armed)
+    await blink.async_arm(armed)
     return JSONResponse({"armed": armed})
 
 

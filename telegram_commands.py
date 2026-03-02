@@ -220,18 +220,23 @@ class TelegramCommandHandler:
 
         args = args.strip().lower()
         if args in ("off", "disarm", "0", "false"):
-            await self._blink._camera.async_arm(False)
-            await self._reply(chat_id, "🛡 Blink camera disarmed — motion detection off.")
+            await self._blink.async_arm(False)
+            await self._reply(chat_id, "🛡 Blink disarmed — network + camera motion off.")
         elif args in ("on", "arm", "1", "true", ""):
-            await self._blink._camera.async_arm(True)
-            await self._reply(chat_id, "🛡 Blink camera armed — motion detection on.")
+            await self._blink.async_arm(True)
+            await self._reply(chat_id, "🛡 Blink armed — network + camera motion on.")
         elif args == "status":
-            armed = self._blink._camera.arm
+            cam_armed = self._blink._camera.arm
+            net_armed = self._blink.network_armed
             motion = self._blink._camera.motion_detected
-            emoji = "🟢" if armed else "⚪"
+            both = bool(cam_armed) and bool(net_armed)
+            emoji = "🟢" if both else "⚪"
             await self._reply(
                 chat_id,
-                f"{emoji} Blink armed: {armed}\nMotion detected: {motion}",
+                f"{emoji} Blink armed: {both}\n"
+                f"  Network: {'armed' if net_armed else 'disarmed'}\n"
+                f"  Camera: {'armed' if cam_armed else 'disarmed'}\n"
+                f"  Motion detected: {motion}",
             )
         else:
             await self._reply(chat_id, "Usage: /arm-blink [on|off|status]")
